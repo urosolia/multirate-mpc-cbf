@@ -18,4 +18,4 @@ Work in progress...
 
 This code is based on the following article:
 
-* U. Rosolia and A. D. Ames, "Multi-Rate Control Design Leveraging Control Barrier Functions and Model Predictive Control Policies," in IEEE Control Systems Letters, vol. 5, no. 3, pp. 1007-1012, July 2021, [PDF](https://ieeexplore.ieee.org/document/9137248)
+1. U. Rosolia and A. D. Ames, "Multi-Rate Control Design Leveraging Control Barrier Functions and Model Predictive Control Policies," in IEEE Control Systems Letters, vol. 5, no. 3, pp. 1007-1012, July 2021, [PDF](https://ieeexplore.ieee.org/document/9137248)
