@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 3.10)
-project(multirate-mpc-cbf VERSION 1.0 LANGUAGES CXX)
+project(mpc VERSION 1.0 LANGUAGES CXX)
 
 ## Compile as C++17, supported in ROS Kinetic and newer
 add_compile_options(-std=c++17)
