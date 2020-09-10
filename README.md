@@ -10,26 +10,26 @@ The OSQP package is required. Please install the packed which can be found [here
 
 The library can be installed using the following commands:
 
-...
+```
 mkdir build && cd build
 cmake ..
 make install
-...
+```
 
 ## Unit Test
 
 To check if the library is installed correctly you can test the MPC
-...
+```
 reset
 g++ src/mpc_test.cpp -o mpc_test.o -I /usr/local/include/osqp_embedded/ -L /usr/local/lib/osqp_embedded/ -losqp_embedded -L /usr/local/lib/mpc/ -lmpc
 ./mpc_test.o
-...
+```
 and the CBF
-...
+```
 reset
 g++ src/cbf_test.cpp -o cbf_test.o -I /usr/local/include/osqp/ -L /usr/local/lib/osqp/ -losqp -L /usr/local/lib/mpc/ -lmpc
 ./cbf_test.o
-...
+```
 
 
 ## Integration in ROS
