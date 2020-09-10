@@ -38,12 +38,10 @@ endif()
 find_package(${OSQP_MODE} REQUIRED CONFIG)
 
 # Add sources
-set(SRC "${CMAKE_CURRENT_SOURCE_DIR}/src/cbf_test.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/mpc_test.cpp")
 file(GLOB "${PROJECT_NAME}_HEADERS" "${CMAKE_CURRENT_SOURCE_DIR}/include/mpc/*.h*")
 
 # Make library
-add_library(${PROJECT_NAME} STATIC ${SRC} "${${PROJECT_NAME}_HEADERS}")
+add_library(${PROJECT_NAME} STATIC "${${PROJECT_NAME}_HEADERS}")
 add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
 # Set include directory
@@ -55,6 +53,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES PUBLIC_HEADER "${${PROJECT_NAME
 # Link with other libraries
 target_link_libraries(${PROJECT_NAME} PUBLIC ${OSQP_MODE}::${OSQP_MODE_LIB}
                                              -ldl)
+set_target_properties(mpc PROPERTIES LINKER_LANGUAGE CXX)
 
 # Set installation options
 # ----------------------------------------------

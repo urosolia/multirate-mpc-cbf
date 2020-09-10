@@ -73,7 +73,8 @@ int main (int argc, char *argv[])
 
 
 	cout << "========== START Initializing MPC Object" << endl;
-	mpcValFun = new MPCValFun(nx_, nu_, N, dt_, dtDelay_, printLevel, x_eq_, error_max_, enlarge, lowLevelActive, linearization_IC_, prefix_path, linearizedDynamics);
+	string matrix_prefix_path = "/home/drew/multirate-mpc-cbf";
+	mpcValFun = new MPCValFun(nx_, nu_, N, dt_, dtDelay_, printLevel, x_eq_, error_max_, enlarge, lowLevelActive, linearization_IC_, matrix_prefix_path, linearizedDynamics);
 	mpcValFun->setGoalState(x_g);
 	mpcValFun->setIC(x_IC);  // Solve QP to check the everything works
 	mpcValFun->readAB();

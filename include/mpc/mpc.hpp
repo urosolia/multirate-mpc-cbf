@@ -6,6 +6,7 @@
 #include <functional>
 #include <cstring>
 #include <string>
+#include <vector>
 
 enum class STATUS : uint8_t
 {
@@ -196,7 +197,7 @@ namespace ModelPredictiveControllerValFun
 			for (int i = 0; i < nx_; i++)
 				tightening[i] = max_error_[i];	
 			ifstream myfile;
-			myfile.open((matrix_prefix_path_+"/qp_matrices/cpp/Qerr.txt"), std::ios::app);
+			myfile.open((matrix_prefix_path_+"/qp_matrices/tuning/Qerr.txt"), std::ios::app);
 			for (int i = 0; i < nx_; i++){
 				myfile >> Qerr[i];
 			}
@@ -372,37 +373,37 @@ namespace ModelPredictiveControllerValFun
 	{
 		// Read Cost Matrices
 		ifstream myfile;
-		myfile.open((matrix_prefix_path_+"/qp_matrices/cpp/Qrate_Qdiff.txt"), std::ios::app);
+		myfile.open((matrix_prefix_path_+"/qp_matrices/tuning/Qrate_Qdiff.txt"), std::ios::app);
 		myfile >> Qrate_;
 		myfile >> Qdiff_;
 		myfile.close();
 
-		myfile.open((matrix_prefix_path_+"/qp_matrices/cpp/Qstate_rate.txt"), std::ios::app);
+		myfile.open((matrix_prefix_path_+"/qp_matrices/tuning/Qstate_rate.txt"), std::ios::app);
 		for (int i = 0; i<nx_; i++){
 			myfile >> Qstate_rate[i];
 		}
 		myfile.close();
 
-		myfile.open((matrix_prefix_path_+"/qp_matrices/cpp/Qlin.txt"), std::ios::app);
+		myfile.open((matrix_prefix_path_+"/qp_matrices/tuning/Qlin.txt"), std::ios::app);
 		for (int i = 0; i<nx_; i++){
 			myfile >> Qlin_[i];
 		}
 		myfile.close();
 		
 		// Read Cost Matrices
-		myfile.open((matrix_prefix_path_+"/qp_matrices/cpp/Q.txt"), std::ios::app);
+		myfile.open((matrix_prefix_path_+"/qp_matrices/tuning/Q.txt"), std::ios::app);
 		for (int j = 0; j < nx_; j++) {
 			myfile >> xCost_[j];
 		}
 		myfile.close();
 
-		myfile.open((matrix_prefix_path_+"/qp_matrices/cpp/Qf.txt"), std::ios::app);
+		myfile.open((matrix_prefix_path_+"/qp_matrices/tuning/Qf.txt"), std::ios::app);
 		for (int j = 0; j < nx_; j++) {
 			myfile >> xCostFinal_[j];
 		}
 		myfile.close();
 
-		myfile.open((matrix_prefix_path_+"/qp_matrices/cpp/R.txt"), std::ios::app);
+		myfile.open((matrix_prefix_path_+"/qp_matrices/tuning/R.txt"), std::ios::app);
 		for (int j = 0; j < nu_; j++) {
 			myfile >> uCost_[j];
 		}
@@ -538,7 +539,7 @@ namespace ModelPredictiveControllerValFun
 	{
 		// Read constraint vector
 		ifstream myfile;
-		myfile.open((matrix_prefix_path_+"/qp_matrices/cpp/x_constr.txt"), std::ios::app);
+		myfile.open((matrix_prefix_path_+"/qp_matrices/tuning/x_constr.txt"), std::ios::app);
 		for (int j = 0; j < nx_; j++) {
 			myfile >> xConstrUB_[j];
 			xConstrLB_[j] = -xConstrUB_[j];
@@ -548,7 +549,7 @@ namespace ModelPredictiveControllerValFun
 		}
 		myfile.close();
 
-		myfile.open((matrix_prefix_path_+"/qp_matrices/cpp/u_constr.txt"), std::ios::app);
+		myfile.open((matrix_prefix_path_+"/qp_matrices/tuning/u_constr.txt"), std::ios::app);
 		for (int j = 0; j < nu_; j++) {
 			myfile >> uConstr_[j];
 		}
