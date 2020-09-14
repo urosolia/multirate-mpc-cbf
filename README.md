@@ -1,6 +1,6 @@
 # multirate-mpc-cbf
 
-This repo containes the multirate-mpc-cbf package, which is a layered multi-frequency architecrure descibend in [1].
+This repo containes the multirate-mpc-cbf package, which is a layered multi-frequency control architecrure descibend in [1].
 
 ## Prerequisite 
 
