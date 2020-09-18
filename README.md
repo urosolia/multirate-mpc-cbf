@@ -21,7 +21,7 @@ make install
 To check if the library is installed correctly you can test the MPC
 ```
 reset
-g++ src/mpc_test.cpp -o mpc_test.o -I /usr/local/include/osqp/ -L /usr/local/lib/osqp_embedded/ -losqp -L /usr/local/lib/mpc/ -lmpc
+g++ src/mpc_test.cpp -o mpc_test.o -I /usr/local/include/osqp/ -L /usr/local/lib/osqp/ -losqp -L /usr/local/lib/mpc/ -lmpc
 ./mpc_test.o
 ```
 and the CBF
