@@ -7,6 +7,7 @@
 #include <cstring>
 #include <string>
 #include <vector>
+#include <array>
 
 enum class STATUS : uint8_t
 {
@@ -63,7 +64,7 @@ namespace ModelPredictiveControllerValFun
 		void updateHorizon(void);
 		void resetHorizon(void);
 		void setGoalState(double xt[]);
-		void updateGoalSetAndState(double goalSetAndState[]);
+		void updateGoalSetAndState(const array<double, 12> &goalSetAndState);
 
 		double *xPred;
 		double *uPred;
@@ -338,22 +339,23 @@ namespace ModelPredictiveControllerValFun
 	}
 	
 
-	void MPCValFun::updateGoalSetAndState(double goalSetAndState[])
+	void MPCValFun::updateGoalSetAndState(const std::array<double, 12> &goalSetAndState)
 	{
 		x_g_[0] = goalSetAndState[0];
 		x_g_[1] = goalSetAndState[1];
-		
-		xConstrLB_[0] = goalSetAndState[2] - enlarge_;
-		xConstrUB_[0] = goalSetAndState[3] + enlarge_;
-		xConstrLB_[1] = goalSetAndState[4] - enlarge_;
-		xConstrUB_[1] = goalSetAndState[5] + enlarge_;
+		x_g_[2] = goalSetAndState[2];
 
-		highLevTime   = goalSetAndState[6];
+		xConstrLB_[0] = goalSetAndState[3] - enlarge_;
+		xConstrUB_[0] = goalSetAndState[4] + enlarge_;
+		xConstrLB_[1] = goalSetAndState[5] - enlarge_;
+		xConstrUB_[1] = goalSetAndState[6] + enlarge_;
 
-		xConstrTermLB_[0] = goalSetAndState[7];
-		xConstrTermUB_[0] = goalSetAndState[8];
-		xConstrTermLB_[1] = goalSetAndState[9];
-		xConstrTermUB_[1] = goalSetAndState[10];
+		highLevTime   = goalSetAndState[7];
+
+		xConstrTermLB_[0] = goalSetAndState[8];
+		xConstrTermUB_[0] = goalSetAndState[9];
+		xConstrTermLB_[1] = goalSetAndState[10];
+		xConstrTermUB_[1] = goalSetAndState[11];
 
 		// cout << "xConstrLB_[0]: " << xConstrLB_[0] << " xConstrUB_[0]: " << xConstrUB_[0] << endl;
 		// cout << "xConstrLB_[1]: " << xConstrLB_[1] << " xConstrUB_[1]: " << xConstrUB_[1] << endl;
