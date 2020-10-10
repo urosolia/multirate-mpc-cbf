@@ -540,13 +540,17 @@ namespace ModelPredictiveControllerValFun
 		// Read constraint vector
 		ifstream myfile;
 		myfile.open((matrix_prefix_path_+"/qp_matrices/tuning/x_constr.txt"), std::ios::app);
+		// cout << "state constraint: ";
 		for (int j = 0; j < nx_; j++) {
 			myfile >> xConstrUB_[j];
 			xConstrLB_[j] = -xConstrUB_[j];
 
+			// cout << xConstrLB_[j];
+
 			xConstrTermUB_[j] =  xConstrUB_[j];
 			xConstrTermLB_[j] =  xConstrLB_[j];
 		}
+		// cout << endl;
 		myfile.close();
 
 		myfile.open((matrix_prefix_path_+"/qp_matrices/tuning/u_constr.txt"), std::ios::app);
