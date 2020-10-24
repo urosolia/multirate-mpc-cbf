@@ -50,8 +50,8 @@ int main (int argc, char *argv[])
 	static const int N  = 40; 	  // Horizon length
 
 	static const uint32_t printLevel =  0; // 0 = no printing, 1 = only x_t, 2 = minimal, 3 = minimal + initialization, 4 = all
-
-	double goalSetAndStateVector[11] = {0.0};
+  std::array<double, 12> goalSetAndStateVector = {0.0};
+//	double goalSetAndStateVector[11] = {0.0};
 	// States are:        x,   y, theta,   v, thetaDot,            psi, psiDot
 	x_eq_[5] = .138;
 

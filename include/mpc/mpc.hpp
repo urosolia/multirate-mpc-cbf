@@ -15,9 +15,6 @@ enum class STATUS : uint8_t
 	RUNNING = 1
 };
 
-using namespace std;
-
-
 namespace ModelPredictiveControllerValFun
 {	
 	///////////////////////////// MPC
@@ -36,7 +33,7 @@ namespace ModelPredictiveControllerValFun
 			const double enlarge,
 			const double lowLevelActive,
 			const double linearization_IC[],
-			const string matrix_prefix_path,
+			const std::string matrix_prefix_path,
 			std::function<void(const double* /*x*/,
 							   const double* /*x_eq*/,
 							   const double* /*u*/,
@@ -64,7 +61,7 @@ namespace ModelPredictiveControllerValFun
 		void updateHorizon(void);
 		void resetHorizon(void);
 		void setGoalState(double xt[]);
-		void updateGoalSetAndState(const array<double, 12> &goalSetAndState);
+		void updateGoalSetAndState(const std::array<double, 12> &goalSetAndState);
 
 		double *xPred;
 		double *uPred;
@@ -89,7 +86,7 @@ namespace ModelPredictiveControllerValFun
 		const double enlarge_ = {};
 	    const double lowLevelActive_ = {};
 		const double *linearization_IC_;
-		const string matrix_prefix_path_;
+		const std::string matrix_prefix_path_;
 		std::function<void(const double* /*x*/,
 						   const double* /*x_eq*/,
 						   const double* /*u*/,
@@ -170,7 +167,7 @@ namespace ModelPredictiveControllerValFun
 						 const double enlarge, 
 						 const double lowLevelActive, 
 						 const double linearization_IC[],
-						 const string matrix_prefix_path, 
+						 const std::string matrix_prefix_path,
 						 std::function<void(const double* /*x*/,
 										    const double* /*x_eq*/,
 										    const double* /*u*/,
@@ -178,17 +175,19 @@ namespace ModelPredictiveControllerValFun
 					                              double* /*B*/,
 											  	  double* /*C*/,
 									 			  const int /*idxN*/)> linearizedDynamics):
-	nx_(nx),nu_(nu), N_(N), dt_(dt), dtDelay_(dtDelay), printLevel_(printFlag), x_eq_(x_eq), max_error_(max_error), enlarge_(enlarge), lowLevelActive_(lowLevelActive), linearization_IC_(linearization_IC), matrix_prefix_path_(matrix_prefix_path), linearizedDynamics_(linearizedDynamics)
+	nx_(nx),nu_(nu), N_(N), dt_(dt), dtDelay_(dtDelay), printLevel_(printFlag), x_eq_(x_eq),
+	max_error_(max_error), enlarge_(enlarge), lowLevelActive_(lowLevelActive), linearization_IC_(linearization_IC),
+	matrix_prefix_path_(matrix_prefix_path), linearizedDynamics_(linearizedDynamics)
 	{
 					
 		// Initialize horizon
 		Nterm_ = N_;
 
 		// Tightening paramters
-		cout << "[MPC] Low Level Active: " << lowLevelActive_ << endl;
-		cout << "[MPC] Enlarge: " << enlarge << endl;
+    std::cout << "[MPC] Low Level Active: " << lowLevelActive_ << std::endl;
+		std::cout << "[MPC] Enlarge: " << enlarge << std::endl;
 
-		cout << "[MPC] linearization_IC_: " << linearization_IC_[2] << endl;
+    std::cout << "[MPC] linearization_IC_: " << linearization_IC_[2] << std::endl;
 
 		tightening = new double[nx_]{};
 		Qerr = new float[nx_]{};
@@ -196,24 +195,24 @@ namespace ModelPredictiveControllerValFun
 
 		if (lowLevelActive_ > 0.5){
 			for (int i = 0; i < nx_; i++)
-				tightening[i] = max_error_[i];	
-			ifstream myfile;
+				tightening[i] = max_error_[i];
+      std::ifstream myfile;
 			myfile.open((matrix_prefix_path_+"/qp_matrices/tuning/Qerr.txt"), std::ios::app);
 			for (int i = 0; i < nx_; i++){
 				myfile >> Qerr[i];
 			}
 			myfile.close();
 		}
-		cout << "Tightening Paramters: " << endl;
-		cout << "error x: "        << tightening[0] << endl;
-		cout << "error y: "        << tightening[1] << endl;
-		cout << "error theta: "    << tightening[2] << endl;
-		cout << "error v: "        << tightening[3] << endl;
-		cout << "error thetaDot: " << tightening[4] << endl;
-		cout << "error psi: "      << tightening[5] << endl;
-		cout << "error psiDot: "   << tightening[6] << endl;
+		std::cout << "Tightening Paramters: " << std::endl;
+		std::cout << "error x: "        << tightening[0] << std::endl;
+		std::cout << "error y: "        << tightening[1] << std::endl;
+		std::cout << "error theta: "    << tightening[2] << std::endl;
+		std::cout << "error v: "        << tightening[3] << std::endl;
+		std::cout << "error thetaDot: " << tightening[4] << std::endl;
+		std::cout << "error psi: "      << tightening[5] << std::endl;
+		std::cout << "error psiDot: "   << tightening[6] << std::endl;
 		for (int i = 0; i < nx_; i++){
-			cout << "error cost: "     << Qerr[i] << " i: " << i << endl;
+			std::cout << "error cost: "     << Qerr[i] << " i: " << i << std::endl;
 		}
 
 		// Initialize Constraint
@@ -331,7 +330,7 @@ namespace ModelPredictiveControllerValFun
 		if (Nterm_ > 2){
 			Nterm_ = Nterm_ - 1;
 		}
-		// cout << "Horizon Length: " << Nterm_ << endl;
+		//std::cout << "Horizon Length: " << Nterm_ <<  std::endl;
 	}
 
 	void MPCValFun::resetHorizon(){
@@ -357,8 +356,8 @@ namespace ModelPredictiveControllerValFun
 		xConstrTermLB_[1] = goalSetAndState[10];
 		xConstrTermUB_[1] = goalSetAndState[11];
 
-		// cout << "xConstrLB_[0]: " << xConstrLB_[0] << " xConstrUB_[0]: " << xConstrUB_[0] << endl;
-		// cout << "xConstrLB_[1]: " << xConstrLB_[1] << " xConstrUB_[1]: " << xConstrUB_[1] << endl;
+		//std::cout << "xConstrLB_[0]: " << xConstrLB_[0] << " xConstrUB_[0]: " << xConstrUB_[0] <<  std::endl;
+		//std::cout << "xConstrLB_[1]: " << xConstrLB_[1] << " xConstrUB_[1]: " << xConstrUB_[1] <<  std::endl;
 
 	}
 
@@ -374,7 +373,7 @@ namespace ModelPredictiveControllerValFun
 	void MPCValFun::readCost()
 	{
 		// Read Cost Matrices
-		ifstream myfile;
+		std::ifstream myfile;
 		myfile.open((matrix_prefix_path_+"/qp_matrices/tuning/Qrate_Qdiff.txt"), std::ios::app);
 		myfile >> Qrate_;
 		myfile >> Qdiff_;
@@ -422,7 +421,7 @@ namespace ModelPredictiveControllerValFun
 		// Initialize cost for states
 		Hc_[Hc_counter] = 0;
 		Hc_counter += 1;
-		// cout << " Writing H" << endl;
+		//std::cout << " Writing H" <<  std::endl;
 		for (int i = 0; i< (N_+1); i++){
 			for (int j = 0; j< nx_; j++){
 				// Rate cost off diagonal
@@ -434,7 +433,7 @@ namespace ModelPredictiveControllerValFun
 				// Diagonal cost
 				if (i == 0){
 					Hx_[Hx_counter] = xCost_[j]      + Qlin_[j] + Qstate_rate[j] + Qerr[j];
-					// cout << Hx_[Hx_counter] << endl;
+					//std::cout << Hx_[Hx_counter] <<  std::endl;
 				}else if ( i < Nterm_ ){
 					Hx_[Hx_counter] = xCost_[j]      + Qlin_[j] + 2*Qstate_rate[j];
 				}else if ( ( i >= Nterm_ ) and (i < N_ ) ){
@@ -486,17 +485,17 @@ namespace ModelPredictiveControllerValFun
 
 		// Hessian --> multiply by 2
 		for (int i = 0; i < Hx_counter; i++){
-			// cout << "Hx_ : " << Hx_[i] << endl; 
+			//std::cout << "Hx_ : " << Hx_[i] <<  std::endl;
 			Hx_[i] = 2*Hx_[i];
 		}
 
-		// cout << " Writing qv" << endl;
+		//std::cout << " Writing qv" <<  std::endl;
 		// Set linear cost
 		for (int i = 0; i < (N_ + 1); i++){
 			for (int j = 0; j < nx_; j++ ){
 				if ( i==0 ){
 					qv_[i*nx_ + j] = -2*xCost_[j]*x_g_[j]      - 2*Qlin_[j]*xLin_[i*nx_ + j] - 2*Qerr[j]*x_IC_[j];
-					// cout << qv_[i*nx_ + j] << endl;
+					//std::cout << qv_[i*nx_ + j] <<  std::endl;
 				}else if (i < Nterm_ ){
 					qv_[i*nx_ + j] = -2*xCost_[j]*x_g_[j]      - 2*Qlin_[j]*xLin_[i*nx_ + j];
 				}else{				
@@ -504,18 +503,18 @@ namespace ModelPredictiveControllerValFun
 				}
 			} 
 		}
-		// cout << "Nterm_: " << Nterm_ << endl;
-		// cout << "goal x: ";
+		//std::cout << "Nterm_: " << Nterm_ <<  std::endl;
+		//std::cout << "goal x: ";
 		// for (int i = 0; i< nx_; i++){
-		// 	cout << x_g_[i] << ", ";
+		// 	std::cout << x_g_[i] << ", ";
 		// }
-		// cout << endl;
+		//std::cout <<  std::endl;
 
-		// cout << "goal xCostFinal_: ";
+		//std::cout << "goal xCostFinal_: ";
 		// for (int i = 0; i< nx_; i++){
-		// 	cout << xCostFinal_[i] << ", ";
+		// 	std::cout << xCostFinal_[i] << ", ";
 		// }
-		// cout << endl;
+		//std::cout <<  std::endl;
 
 		for (int i = 0; i < N_; i++){
 			for (int j = 0; j < nu_; j++ ){
@@ -527,20 +526,20 @@ namespace ModelPredictiveControllerValFun
 			} 
 		}
 		// for (int i = 0; i < nv_; i++){
-		// 	cout << "qv_ : " << qv_[i] << endl; 
+		// 	std::cout << "qv_ : " << qv_[i] <<  std::endl;
 		// }
 
-		// cout << "Initial Condition: ";
+		//std::cout << "Initial Condition: ";
 		// for (int i = 0; i<nx_; i++){
-		// 	cout << x_IC_[i] << ", ";
+		// 	std::cout << x_IC_[i] << ", ";
 		// }
-		// cout << endl;
+		//std::cout <<  std::endl;
 	}
 
 	void MPCValFun::initiConstrVector()
 	{
 		// Read constraint vector
-		ifstream myfile;
+		std::ifstream myfile;
 		myfile.open((matrix_prefix_path_+"/qp_matrices/tuning/x_constr.txt"), std::ios::app);
 		for (int j = 0; j < nx_; j++) {
 			myfile >> xConstrUB_[j];
@@ -619,8 +618,7 @@ namespace ModelPredictiveControllerValFun
 
 				// Add identity
 				Fx_[Fx_counter] = 1;
-				Fr_[Fx_counter] = row;
-				Fx_counter += 1;		
+				Fr_[Fx_counter] = row;				Fx_counter += 1;
 				
 				// Now matrix A
 				if (i < N_){
@@ -668,13 +666,13 @@ namespace ModelPredictiveControllerValFun
 		}
 
 		if (printLevel_ >= 6){
-			cout << "Fx: " << endl;
+		 	std::cout << "Fx: " <<  std::endl;
 			int countern = 0;
 			for (int i = 0; i < Fx_counter; i++){
 				if (i > Fc_[countern+1]-1){
 					countern = countern + 1;
 				}
-				cout << Fx_[i] << ", Row: " << Fr_[i] << ", Col: "<< countern << endl;
+			 	std::cout << Fx_[i] << ", Row: " << Fr_[i] << ", Col: "<< countern <<  std::endl;
 			}			
 		}
 	}
@@ -684,33 +682,33 @@ namespace ModelPredictiveControllerValFun
 	{	
 
 		// Read Matrix A
-		ifstream myfile;
+		std::ifstream myfile;
 		myfile.open((matrix_prefix_path_+"/qp_matrices/planningModelMatrices/Alinear.txt"), std::ios::app);
 	
-		if (printLevel_ >= 1) cout << "START Reading Matrix A" << endl;
+		if (printLevel_ >= 1)std::cout << "START Reading Matrix A" <<  std::endl;
 		for (int i = 0; i < nx_; i++) {
 			for (int j = 0; j < nx_; j++) {
 				myfile >> Alinear_[i*nx_ + j];
-				if (printLevel_ >= 2) cout << Alinear_[i*nx_ + j] << ", ";
+				if (printLevel_ >= 2)std::cout << Alinear_[i*nx_ + j] << ", ";
 			}
-			if (printLevel_ >= 2) cout << endl;
+			if (printLevel_ >= 2)std::cout <<  std::endl;
 		}
-		if (printLevel_ >= 1) cout << "DONE Reading Matrix A" << endl;
+		if (printLevel_ >= 1)std::cout << "DONE Reading Matrix A" <<  std::endl;
 		myfile.close();
 
 		// Read Matrix B (Simple Euler (integral of matrix exponential hard due to singularity))
 		myfile.open((matrix_prefix_path_+"/qp_matrices/planningModelMatrices/Blinear.txt"), std::ios::app);
 		
-		if (printLevel_ >= 1) cout << "START Reading Matrix B" << endl;
+		if (printLevel_ >= 1) std::cout << "START Reading Matrix B" <<  std::endl;
 		for (int i = 0; i < nx_; i++) {
 			for (int j = 0; j < nu_; j++) {
 				myfile >> Blinear_[i*nu_ + j];
-				if (printLevel_ >= 2) cout << Blinear_[i*nu_ + j] << ", ";
+				if (printLevel_ >= 2) std::cout << Blinear_[i*nu_ + j] << ", ";
 			}
-			if (printLevel_ >= 2) cout << endl;
+			if (printLevel_ >= 2) std::cout <<  std::endl;
 		}
 		myfile.close();
-		if (printLevel_ >= 1) cout << "DONE Reading Matrix B" << endl;
+		if (printLevel_ >= 1) std::cout << "DONE Reading Matrix B" <<  std::endl;
 	}
 	
 	void MPCValFun::linearize()
@@ -737,7 +735,7 @@ namespace ModelPredictiveControllerValFun
 			matrixProd(Alinear4_, Alinear3_, Alinear_);
 
 			// Discretize Matrix A (approximate matrix Explonential)
-			if (printLevel_ >= 4) cout << "Alin Approximation with dt_: "<< dt_ << " idxN: " << idxN << endl;
+			if (printLevel_ >= 4) std::cout << "Alin Approximation with dt_: "<< dt_ << " idxN: " << idxN <<  std::endl;
 			for (int row = 0; row < nx_; row ++){
 				for (int col = 0; col < nx_; col ++){
 					if (row == col){
@@ -745,41 +743,41 @@ namespace ModelPredictiveControllerValFun
 					}else{
 						Alin_[idxN*(nx_*nx_) + row*nx_ + col] =       Alinear_[row*nx_ + col]*dt_ + 0.5*Alinear2_[row*nx_ + col]*pow(dt_,2) + (1.0/6.0)*Alinear3_[row*nx_ + col]*pow(dt_,3) + (1.0/24.0)*Alinear4_[row*nx_ + col]*pow(dt_,4);
 					}
-					if (printLevel_ >= 4) cout << Alin_[idxN*(nx_*nx_) + row*nx_ + col] << " ";
+					if (printLevel_ >= 4) std::cout << Alin_[idxN*(nx_*nx_) + row*nx_ + col] << " ";
 				}
-				if (printLevel_ >= 4) cout << endl;
+				if (printLevel_ >= 4) std::cout <<  std::endl;
 			}
 
-			if ((printLevel_ >= 3) and (idxN == 0)) cout << "Alin Approximation with dt_: "<< dt_ << " idxN: " << idxN << endl;
+			if ((printLevel_ >= 3) and (idxN == 0)) std::cout << "Alin Approximation with dt_: "<< dt_ << " idxN: " << idxN <<  std::endl;
 			for (int row = 0; row < nx_; row ++){
 				for (int col = 0; col < nx_; col ++){
-					if ((printLevel_ >= 3) and (idxN == 0)) cout << Alin_[idxN*(nx_*nx_) + row*nx_ + col] << " ";
+					if ((printLevel_ >= 3) and (idxN == 0)) std::cout << Alin_[idxN*(nx_*nx_) + row*nx_ + col] << " ";
 				}
-				if ((printLevel_ >= 3) and (idxN == 0)) cout << endl;
+				if ((printLevel_ >= 3) and (idxN == 0)) std::cout <<  std::endl;
 			}
 
 			// Discretize Matrix B
-			if (printLevel_ >= 4) cout << "Blin Approximation with dt_: "<< dt_ << " idxN: " << idxN << endl;
+			if (printLevel_ >= 4) std::cout << "Blin Approximation with dt_: "<< dt_ << " idxN: " << idxN <<  std::endl;
 			for (int row = 0; row < nx_; row ++){
 				for (int col = 0; col < nu_; col ++){
 					Blin_[idxN*(nx_*nu_) + row*nu_ + col] = Blinear_[row*nu_ + col] * dt_;
-					if (printLevel_ >= 4) cout << Blin_[idxN*(nx_*nu_) + row*nu_ + col] << " ";
+					if (printLevel_ >= 4) std::cout << Blin_[idxN*(nx_*nu_) + row*nu_ + col] << " ";
 				}
-				if (printLevel_ >= 4) cout << endl;
+				if (printLevel_ >= 4) std::cout <<  std::endl;
 			}
 
-			if ((printLevel_ >= 3) and (idxN == 0)) cout << "Blin Approximation with dt_: "<< dt_ << " idxN: " << idxN << endl;
+			if ((printLevel_ >= 3) and (idxN == 0)) std::cout << "Blin Approximation with dt_: "<< dt_ << " idxN: " << idxN <<  std::endl;
 			for (int row = 0; row < nx_; row ++){
 				for (int col = 0; col < nu_; col ++){
-					if ((printLevel_ >= 3) and (idxN == 0)) cout << Blin_[idxN*(nx_*nu_) + row*nu_ + col] << " ";
+					if ((printLevel_ >= 3) and (idxN == 0)) std::cout << Blin_[idxN*(nx_*nu_) + row*nu_ + col] << " ";
 				}
-				if ((printLevel_ >= 3) and (idxN == 0)) cout << endl;
+				if ((printLevel_ >= 3) and (idxN == 0)) std::cout <<  std::endl;
 			}
 
 			// if idxN == 0 ---> take into account delay
 			if (idxN == 0){
 				// Discretize Dealy Matrix propagation
-				if (printLevel_ >= 4) cout << "AlinDelay_ Approximation with dtDelay_: "<< dtDelay_ << endl;
+				if (printLevel_ >= 4) std::cout << "AlinDelay_ Approximation with dtDelay_: "<< dtDelay_ <<  std::endl;
 				for (int row = 0; row < nx_; row ++){
 					for (int col = 0; col < nx_; col ++){
 						if (row == col){
@@ -787,19 +785,19 @@ namespace ModelPredictiveControllerValFun
 						}else{
 							AlinDelay_[row*nx_ + col] =       Alinear_[row*nx_ + col]*dtDelay_ + 0.5*Alinear2_[row*nx_ + col]*pow(dtDelay_,2) + (1.0/6.0)*Alinear3_[row*nx_ + col]*pow(dtDelay_,3) + (1.0/24.0)*Alinear4_[row*nx_ + col]*pow(dtDelay_,4);
 						}
-						if (printLevel_ >= 4) cout << AlinDelay_[row*nx_ + col] << " ";
+						if (printLevel_ >= 4) std::cout << AlinDelay_[row*nx_ + col] << " ";
 					}
-					if (printLevel_ >= 4) cout << endl;
+					if (printLevel_ >= 4) std::cout <<  std::endl;
 				}
 
 				// Discretize Matrix B delay
-				if (printLevel_ >= 4) cout << "BlinDelay_ Approximation with dtDelay_: "<< dtDelay_ << endl;
+				if (printLevel_ >= 4) std::cout << "BlinDelay_ Approximation with dtDelay_: "<< dtDelay_ <<  std::endl;
 				for (int row = 0; row < nx_; row ++){
 					for (int col = 0; col < nu_; col ++){
 						BlinDelay_[row*nu_ + col] = Blinear_[row*nu_ + col] * dtDelay_;
-						if (printLevel_ >= 4) cout << BlinDelay_[row*nx_ + col] << " ";
+						if (printLevel_ >= 4) std::cout << BlinDelay_[row*nx_ + col] << " ";
 					}
-					if (printLevel_ >= 4) cout << endl;
+					if (printLevel_ >= 4) std::cout <<  std::endl;
 				}
 			}
 		}
@@ -808,7 +806,7 @@ namespace ModelPredictiveControllerValFun
 	void MPCValFun::matrixProd(double Aout[], double A1[], double A2[])
 	{	
 		// compute x_IC = Alin * xCurr + Blin * uCurr
-		if (printLevel_ >= 4) cout << "==================================== matrixProd" << endl;
+		if (printLevel_ >= 4) std::cout << "==================================== matrixProd" <<  std::endl;
 		for (int i=0; i < nx_; i++) {
 			for (int j = 0; j < nx_; ++j){
 				Aout[i*nx_ + j] = 0.0;
@@ -816,26 +814,26 @@ namespace ModelPredictiveControllerValFun
 				{
 					Aout[i*nx_ + j] = Aout[i*nx_ + j] + A1[i*nx_ + ii] * A2[ii*nx_ + j];
 				}
-				if (printLevel_ >= 4) cout << Aout[i*nx_ + j] << ", ";
+				if (printLevel_ >= 4) std::cout << Aout[i*nx_ + j] << ", ";
 			}
-			if (printLevel_ >= 4) cout << endl;
+			if (printLevel_ >= 4) std::cout <<  std::endl;
 		}
 
 		if (printLevel_>=4){
-			cout << "A matrix" << endl;
+		 	std::cout << "A matrix" <<  std::endl;
 			for (int i = 0; i<nx_; i++){
 				for (int j = 0; j <nx_; j++){
-					cout << A1[i*nx_ + j] << ",";
+				 	std::cout << A1[i*nx_ + j] << ",";
 				}
-				cout << endl;
+			 	std::cout <<  std::endl;
 			}
 
-			cout << "A matrix" << endl;
+		 	std::cout << "A matrix" <<  std::endl;
 			for (int i = 0; i<nx_; i++){
 				for (int j = 0; j <nx_; j++){
-					cout << A2[i*nx_ + j] << ",";
+				 	std::cout << A2[i*nx_ + j] << ",";
 				}
-				cout << endl;
+			 	std::cout <<  std::endl;
 			}			
 		}
 
@@ -843,8 +841,8 @@ namespace ModelPredictiveControllerValFun
 	
 	int MPCValFun::setUpOSQP(int verbose)
 	{
-		if (printLevel_ >= 1) cout << "START Setting-up Solver" << endl;
-		cout << "START Setting-up Solver" << endl;
+		if (printLevel_ >= 1) std::cout << "START Setting-up Solver" <<  std::endl;
+	 	std::cout << "START Setting-up Solver" <<  std::endl;
 		// Setting default settings
 		osqp_set_default_settings(settings_);
 		settings_->max_iter = 2000;
@@ -861,11 +859,11 @@ namespace ModelPredictiveControllerValFun
 		data_->l = lb_x_;
 		data_->u = ub_x_;
 
-		if (printLevel_ >= 1) cout << "DONE Setting-up Solver" << endl;
+		if (printLevel_ >= 1) std::cout << "DONE Setting-up Solver" <<  std::endl;
 	
 		osqp_setup(&work_, data_, settings_);
 
-		cout << "HERE !!! DONE Setting-up Solver" << endl;
+	 	std::cout << "HERE !!! DONE Setting-up Solver" <<  std::endl;
 
 		return osqp_setup(&work_, data_, settings_);
 	}
@@ -918,7 +916,7 @@ namespace ModelPredictiveControllerValFun
 	void MPCValFun::solveQP()
 	{
 		// Update initial condition (x0 is not a variable so need to constraint x1 ---> Ax0 in lb_x_ and ub_x_)
-		if (printLevel_ >= 3) cout << "Compute Ax0 to to update lb_x_ and ub_x_"<< nx_ << std::endl;
+		if (printLevel_ >= 3) std::cout << "Compute Ax0 to to update lb_x_ and ub_x_"<< nx_ << std::endl;
 		for (int i = 0; i < nx_; i++) {
 			lb_x_[i] = x_IC_[i];
 			ub_x_[i] = x_IC_[i]; 
@@ -926,8 +924,8 @@ namespace ModelPredictiveControllerValFun
 
 		if (printLevel_ >= 3){
 			for (int i = 0; i < nx_; i++) {
-				cout << " Udpated Initial condition lb_x_[i] " << lb_x_[i] << std::endl;
-				cout << " Udpated Initial condition ub_x_[i] " << ub_x_[i] << std::endl;
+			 	std::cout << " Udpated Initial condition lb_x_[i] " << lb_x_[i] << std::endl;
+			 	std::cout << " Udpated Initial condition ub_x_[i] " << ub_x_[i] << std::endl;
 			}			
 		}
 
@@ -949,11 +947,11 @@ namespace ModelPredictiveControllerValFun
 		
 		// Now solve QP
 		osqp_solve(work_);
-		if (printLevel_ >= 1) cout << "QP solved optimally: "<< work_->info->status_val << std::endl;
+		if (printLevel_ >= 1) std::cout << "QP solved optimally: "<< work_->info->status_val << std::endl;
 		solverFlag = work_->info->status_val;
 
 		if (work_->info->status_val != OSQP_SOLVED){
-			cout << "MPC not optimal, solver flag: " << work_->info->status_val << endl;
+		 	std::cout << "MPC not optimal, solver flag: " << work_->info->status_val <<  std::endl;
 		}
 
 		
@@ -1022,37 +1020,37 @@ namespace ModelPredictiveControllerValFun
 			}					
 		}
 
-		// cout << "Optimal state: ";
+		// std::cout << "Optimal state: ";
 		// for (int i = 0; i<nx_; i++){
-		// 	cout << xPred[i] << ", ";
+		// 	std::cout << xPred[i] << ", ";
 		// }
-		// cout << endl;
-		// cout << "Initial Condition: ";
+		// std::cout <<  std::endl;
+		// std::cout << "Initial Condition: ";
 		// for (int i = 0; i<nx_; i++){
-		// 	cout << x_IC_[i] << ", ";
+		// 	std::cout << x_IC_[i] << ", ";
 		// }
-		// cout << endl;
+		// std::cout <<  std::endl;
 		// Print optimal solution
 
 		if ((printLevel_ >= 3)){// or (work_->info->status_val >= 2)){
-			cout << "OPTIMAL States:"<< std::endl;
+		 	std::cout << "OPTIMAL States:"<< std::endl;
 			for (int i = 0; i< nx_; i++){
 				for (int j = 0; j < N_+1; ++j){
-					cout << xPred[j*nx_+i] <<",";
+				 	std::cout << xPred[j*nx_+i] <<",";
 				}
-				cout << endl;
+			 	std::cout <<  std::endl;
 			}	
 
-			cout << "OPTIMAL Inputs:"<< std::endl;
+		 	std::cout << "OPTIMAL Inputs:"<< std::endl;
 			for (int i = 0; i< nu_; i++){
 				for (int j = 0; j < N_; ++j){
-					cout << uPred[j*nu_+i] <<",";
+				 	std::cout << uPred[j*nu_+i] <<",";
 				}
-				cout << endl;
+			 	std::cout <<  std::endl;
 			}	
 
 			for (int i = 0; i < 3; i++){
-				cout << static_cast<double>(work_->solution->x[nx_*N_ + nu_*N_ + i]) << ", i: " << i << endl;
+			 	std::cout << static_cast<double>(work_->solution->x[nx_*N_ + nu_*N_ + i]) << ", i: " << i <<  std::endl;
 			}	
 		}
 
