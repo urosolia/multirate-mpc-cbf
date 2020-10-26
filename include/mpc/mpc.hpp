@@ -9,6 +9,9 @@
 #include <vector>
 #include <array>
 
+#include <eigen3/Eigen/Dense>
+#include <eigen3/unsupported/Eigen/MatrixFunctions>
+
 enum class STATUS : uint8_t
 {
 	FAILURE = 0,
@@ -18,29 +21,30 @@ enum class STATUS : uint8_t
 namespace ModelPredictiveControllerValFun
 {	
 	///////////////////////////// MPC
+	using LinDyn = std::function<void(const double* /*x*/,
+                                        const double* /*x_eq*/,
+                                        const double* /*u*/,
+                                        double* /*A*/,
+                                        double* /*B*/,
+                                        double* /*C*/,
+                                        const int /*idxN*/)>;
+  template<int nx_, int nu_, int N_, typename Linearizer = LinDyn>
 	class MPCValFun
 	{
 
 	public:
-		MPCValFun(const int nx,
-			const int nu,
-			const int N,
+
+		MPCValFun(
 			const double dt,
 			const double dtDelay,
 			const uint32_t printFlag,
 			const double x_eq[],
-			const double error_max[],
+			const double max_error[],
 			const double enlarge,
 			const double lowLevelActive,
 			const double linearization_IC[],
 			const std::string matrix_prefix_path,
-			std::function<void(const double* /*x*/,
-							   const double* /*x_eq*/,
-							   const double* /*u*/,
-		                             double* /*A*/,
-		                             double* /*B*/,
-									 double* /*C*/,
-									 const int /*idxN*/)> linearizedDynamics);
+			Linearizer linearizedDynamics);
 
 		~MPCValFun(void);
 
@@ -53,11 +57,11 @@ namespace ModelPredictiveControllerValFun
 		int setUpOSQP(int verbose);
 		void solveQP(double xt[]);
 		void initiConstrVector(void);
-		void buildConstrVector(void);
+		virtual void buildConstrVector(void);
 		void buildConstrMatrix(void);
 		void readCost(void);
 		void buildCost(void);
-		void linearize(void);
+		virtual void linearize(void);
 		void updateHorizon(void);
 		void resetHorizon(void);
 		void setGoalState(double xt[]);
@@ -75,9 +79,6 @@ namespace ModelPredictiveControllerValFun
 		double *xLin_;
 		double *uLin_;
 
-		const int nx_;
-		const int nu_;
-		const int  N_;
 		const double dt_;
 		const double dtDelay_;
 		const uint32_t  printLevel_;
@@ -87,19 +88,10 @@ namespace ModelPredictiveControllerValFun
 	    const double lowLevelActive_ = {};
 		const double *linearization_IC_;
 		const std::string matrix_prefix_path_;
-		std::function<void(const double* /*x*/,
-						   const double* /*x_eq*/,
-						   const double* /*u*/,
-	                             double* /*A*/,
-	                             double* /*B*/,
-								 double* /*C*/,
-						   const int /*idxN*/)> linearizedDynamics_;
+    Linearizer linearizedDynamics_;
 		int nv_;
 		int nc_;
 		double *x_g_;
-		double *Alinear2_;
-		double *Alinear3_;
-		double *Alinear4_;
 
 
 		double *Alin_;
@@ -108,6 +100,7 @@ namespace ModelPredictiveControllerValFun
 		double *Alinear_;
 		double *Blinear_;
 		double *Clinear_;
+
 		double *AlinDelay_;
 		double *BlinDelay_;
 		double *xConstrLB_;
@@ -154,30 +147,140 @@ namespace ModelPredictiveControllerValFun
 		OSQPData *data_;
 
 	}; //end MPC class
+using LinDynCov = std::function<void(const double * /*x*/,
+                                     const double * /*x_eq*/,
+                                     const double * /*u*/,
+                                     double * /*A*/,
+                                     double * /*B*/,
+                                     double * /*C*/,
+                                     double * /*K*/,
+                                     const int /*idxN*/)>;
+
+template<int nx_, int nu_, int N_>
+class MPCValFunGP : public MPCValFun<nx_, nu_, N_, LinDynCov> {
+  double * Klinear_; // This is overwritten after Alin_ is computed
+ public:
+  using PARENT = MPCValFun<nx_, nu_, N_, LinDynCov>;
+  MPCValFunGP(
+    const double dt,
+    const double dtDelay,
+    const uint32_t printFlag,
+    const double x_eq[],
+    const double max_error[],
+    const double enlarge,
+    const double lowLevelActive,
+    const double linearization_IC[],
+    const std::string matrix_prefix_path,
+    LinDynCov linearizer) :
+    PARENT(dt, dtDelay, printFlag, x_eq, max_error, enlarge,
+           lowLevelActive, linearization_IC, matrix_prefix_path, linearizer) {
+    Klinear_  = new double[(nx_+ nu_)*(nx_ + nu_)]; // This is overwritten after Alin_ is computed
+  }
+  void buildConstrVector(void) override {
+    PARENT ::buildConstrVector();
+    // Affine dynamics bound without dt
+    for (int i = 0; i< nx_*N_; i++){
+
+      this->lb_x_[nx_ + i] = this->Clinear_[i];
+      this->ub_x_[nx_ + i] = this->Clinear_[i];
+    }
+  }
+  void linearize(void) override {
+    using AMat = Eigen::Matrix<double, nx_, nx_>;
+    using BMat = Eigen::Matrix<double, nx_, nu_>;
+    using CMat = Eigen::Matrix<double, nx_, 1>;
+    using KMat = Eigen::Matrix<double, nx_ + nu_, nx_ + nu_>;
+
+    for (int idxN = 0; idxN < N_; idxN ++){
+      // Get linearized dynamics
+      this->linearizedDynamics_(this->xLin_,
+                          this->x_eq_,
+                          this->uLin_,
+                          this->Alinear_,
+                          this->Blinear_,
+                          this->Clinear_,
+                          this->Klinear_,
+                          idxN);
+
+      auto AlinearMat = Eigen::Map<AMat>(this->Alinear_);
+      auto BlinearMat = Eigen::Map<BMat>(this->Blinear_);
+      auto ClinearMat = Eigen::Map<CMat>(this->Clinear_);
+      auto KlinearMat = Eigen::Map<KMat>(this->Klinear_);
+
+      auto AlinearOutMat = Eigen::Map<AMat>(this->AlinearOut);
+      auto BlinearOutMat = Eigen::Map<BMat>(this->BlinearOut);
+      auto ClinearOutMat = Eigen::Map<CMat>(this->ClinearOut);
+
+      if (idxN == 0){
+        AlinearOutMat = AlinearMat;
+        BlinearOutMat = BlinearMat;
+        ClinearOutMat = ClinearMat;
+      }
+
+      // Discretize Matrix A (approximate matrix Explonential)
+      if (this->printLevel_ >= 4) std::cout << "Alin Approximation with this->dt_: "<< this->dt_ << " idxN: " << idxN <<  std::endl;
+      auto AlinIdxNmat = Eigen::Map<AMat>(this->Alin_ + idxN*(nx_*nx_));
+      AlinIdxNmat = AlinearMat;
+
+      if ((this->printLevel_ >= 3) and (idxN == 0)) std::cout << "Alin Approximation with this->dt_: "<< this->dt_ << " idxN: " << idxN <<  std::endl;
+      for (int row = 0; row < nx_; row ++){
+        for (int col = 0; col < nx_; col ++){
+          if ((this->printLevel_ >= 3) and (idxN == 0)) std::cout << this->Alin_[idxN*(nx_*nx_) + row*nx_ + col] << " ";
+        }
+        if ((this->printLevel_ >= 3) and (idxN == 0)) std::cout <<  std::endl;
+      }
+
+      // Discretize Matrix B
+      if (this->printLevel_ >= 4) std::cout << "Blin Approximation with this->dt_: "<< this->dt_ << " idxN: " << idxN <<  std::endl;
+      auto BlinIdxNmat = Eigen::Map<BMat>(this->Blin_ + idxN*(nx_*nu_));
+      BlinIdxNmat = BlinearMat;
+
+      if ((this->printLevel_ >= 3) and (idxN == 0)) std::cout << "Blin Approximation with this->dt_: "<< this->dt_ << " idxN: " << idxN <<  std::endl;
+      for (int row = 0; row < nx_; row ++){
+        for (int col = 0; col < nu_; col ++){
+          if ((this->printLevel_ >= 3) and (idxN == 0)) std::cout << this->Blin_[idxN*(nx_*nu_) + row*nu_ + col] << " ";
+        }
+        if ((this->printLevel_ >= 3) and (idxN == 0)) std::cout <<  std::endl;
+      }
+
+      // if idxN == 0 ---> take into account delay
+      //TODO: No computationally cheap way to handle this case with GP
+      //with GPs we get the exp(adt)
+      if (idxN == 0){
+        // Discretize Dealy Matrix propagation
+        if (this->printLevel_ >= 4) std::cout << "AlinDelay_ Approximation with dtDelay_: "<< this->dtDelay_ <<  std::endl;
+        auto AlinDelayMat = Eigen::Map<AMat>(this->AlinDelay_);
+        AlinDelayMat = AlinearMat;
+//        AlinDelayMat = (AlinearMat * this->dtDelay_).exp();
+
+        // Discretize Matrix B delay
+        if (this->printLevel_ >= 4) std::cout << "BlinDelay_ Approximation with dtDelay_: "<< this->dtDelay_ <<  std::endl;
+        auto BlinDelayMat = Eigen::Map<BMat>(this->BlinDelay_);
+        BlinDelayMat = BlinearMat;
+//        BlinDelayMat = BlinearMat * this->dtDelay_;
+
+      }
+    }
+  }
+};
+
 
 	// Define constructor
-	MPCValFun::MPCValFun(const int nx,  
-						 const int nu, 
-						 const int N, 
-						 const double dt, 
-						 const double dtDelay, 
-						 const uint32_t printFlag, 
-						 const double x_eq[], 
-						 const double max_error[], 
-						 const double enlarge, 
-						 const double lowLevelActive, 
-						 const double linearization_IC[],
-						 const std::string matrix_prefix_path,
-						 std::function<void(const double* /*x*/,
-										    const double* /*x_eq*/,
-										    const double* /*u*/,
-					                              double* /*A*/,
-					                              double* /*B*/,
-											  	  double* /*C*/,
-									 			  const int /*idxN*/)> linearizedDynamics):
-	nx_(nx),nu_(nu), N_(N), dt_(dt), dtDelay_(dtDelay), printLevel_(printFlag), x_eq_(x_eq),
-	max_error_(max_error), enlarge_(enlarge), lowLevelActive_(lowLevelActive), linearization_IC_(linearization_IC),
-	matrix_prefix_path_(matrix_prefix_path), linearizedDynamics_(linearizedDynamics)
+  template<int nx_, int nu_, int N_, typename Linearizer>
+	MPCValFun<nx_,nu_,N_, Linearizer>::MPCValFun(
+    const double dt,
+    const double dtDelay,
+    const uint32_t printFlag,
+    const double x_eq[],
+    const double max_error[],
+    const double enlarge,
+    const double lowLevelActive,
+    const double linearization_IC[],
+    const std::string matrix_prefix_path,
+    Linearizer linearizedDynamics):
+    dt_(dt), dtDelay_(dtDelay), printLevel_(printFlag), x_eq_(x_eq),
+    max_error_(max_error), enlarge_(enlarge), lowLevelActive_(lowLevelActive), linearization_IC_(linearization_IC),
+    matrix_prefix_path_(matrix_prefix_path), linearizedDynamics_(linearizedDynamics)
 	{
 					
 		// Initialize horizon
@@ -219,7 +322,7 @@ namespace ModelPredictiveControllerValFun
 		nv_ = nx_*(N_+1) + nu_*N_; // Total number of variable
 		nc_ = nx_*(N_+1) + nx_*(N_+1) + nu_*N_; // Total number of constraints: nx_*(N+1) equality constraints + (nx_*(N_+1) + nu_*N_) box constraints
 		
-		F_znn_ = nx*(N_+1) + nx*nx*N_ + nx*nu*N_ + nx_*(N_+1) + nu_*N_;
+		F_znn_ = nx_*(N_+1) + nx_*nx_*N_ + nx_*nu_*N_ + nx_*(N_+1) + nu_*N_;
 		Fx_    = new c_float[F_znn_];
 		Fr_    = new c_int[F_znn_]; // Note that dim(Hr_) = dim(FxOld_) by definition
 		Fc_    = new c_int[nv_ + 1];
@@ -251,10 +354,6 @@ namespace ModelPredictiveControllerValFun
 		Alinear_  = new double[nx_*nx_]; // This is overwritten after Alin_ is computed
 		Blinear_  = new double[nx_*nu_]; // This is overwritten after Blin_ is computed
 		Clinear_  = new double[nx_*N_];  // This is NOT overwritten because we simply have that Clin = Clinear * dt_
-				
-		Alinear2_ = new double[nx_*nx_];
-		Alinear3_ = new double[nx_*nx_];
-		Alinear4_ = new double[nx_*nx_];
 
 		
 		Blin_ = new double[N_*nx_*nu_];
@@ -295,7 +394,7 @@ namespace ModelPredictiveControllerValFun
 		xCostFinal_ = new float[nx_];
 		uCost_      = new float[nu_];
 
-		Qlin_        = new float[nx_];
+		Qlin_        = new float[nx_]; // Nnx*N
 		Qstate_rate  = new float[nx_];
 
  		// Initialize OSQP
@@ -305,7 +404,8 @@ namespace ModelPredictiveControllerValFun
  	}
 
  	// Deallocation Memory
-	MPCValFun::~MPCValFun(void)
+  template<int nx_, int nu_, int N_, typename Linearizer>
+  MPCValFun<nx_,nu_,N_, Linearizer>::~MPCValFun(void)
 	{
 		osqp_cleanup(work_);
 		if (data_)
@@ -326,19 +426,20 @@ namespace ModelPredictiveControllerValFun
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////
  	/////////////////////////////////////// Define Functions /////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	void MPCValFun::updateHorizon(){
+  template<int nx_, int nu_, int N_, typename Linearizer>
+  void MPCValFun<nx_,nu_,N_, Linearizer>::updateHorizon(){
 		if (Nterm_ > 2){
 			Nterm_ = Nterm_ - 1;
 		}
 		//std::cout << "Horizon Length: " << Nterm_ <<  std::endl;
 	}
-
-	void MPCValFun::resetHorizon(){
+template<int nx_, int nu_, int N_, typename Linearizer>
+ void MPCValFun<nx_,nu_,N_, Linearizer>::resetHorizon(){
 		Nterm_ = N_;
 	}
-	
 
-	void MPCValFun::updateGoalSetAndState(const std::array<double, 12> &goalSetAndState)
+template<int nx_, int nu_, int N_, typename Linearizer>
+void MPCValFun<nx_,nu_,N_, Linearizer>::updateGoalSetAndState(const std::array<double, 12> &goalSetAndState)
 	{
 		x_g_[0] = goalSetAndState[0];
 		x_g_[1] = goalSetAndState[1];
@@ -360,8 +461,8 @@ namespace ModelPredictiveControllerValFun
 		//std::cout << "xConstrLB_[1]: " << xConstrLB_[1] << " xConstrUB_[1]: " << xConstrUB_[1] <<  std::endl;
 
 	}
-
-	void MPCValFun::setGoalState(double x_goal[])
+template<int nx_, int nu_, int N_, typename Linearizer>
+void MPCValFun<nx_,nu_,N_, Linearizer>::setGoalState(double x_goal[])
 	{
 		for (int i = 0; i < nx_; i++){
 			x_g_[i] = x_goal[i];
@@ -369,8 +470,8 @@ namespace ModelPredictiveControllerValFun
 	}
 
 
-		
-	void MPCValFun::readCost()
+template<int nx_, int nu_, int N_, typename Linearizer>
+void MPCValFun<nx_,nu_,N_, Linearizer>::readCost()
 	{
 		// Read Cost Matrices
 		std::ifstream myfile;
@@ -410,8 +511,8 @@ namespace ModelPredictiveControllerValFun
 		}
 		myfile.close();
 	}
-
-	void MPCValFun::buildCost()
+template<int nx_, int nu_, int N_, typename Linearizer>
+void MPCValFun<nx_,nu_,N_, Linearizer>::buildCost()
 	{
 		// IMPORTANT: the structure is fixed upper triangular!!!
 
@@ -535,8 +636,8 @@ namespace ModelPredictiveControllerValFun
 		// }
 		//std::cout <<  std::endl;
 	}
-
-	void MPCValFun::initiConstrVector()
+template<int nx_, int nu_, int N_, typename Linearizer>
+void MPCValFun<nx_,nu_,N_, Linearizer>::initiConstrVector()
 	{
 		// Read constraint vector
 		std::ifstream myfile;
@@ -556,8 +657,8 @@ namespace ModelPredictiveControllerValFun
 		}
 		myfile.close();
 	}
-
-	void MPCValFun::buildConstrVector()
+template<int nx_, int nu_, int N_, typename Linearizer>
+void MPCValFun<nx_,nu_,N_, Linearizer>::buildConstrVector()
 	{
 
 		for (int i = 0; i< nx_; i++){
@@ -597,8 +698,8 @@ namespace ModelPredictiveControllerValFun
 		}
 
 	}
-
-	void MPCValFun::buildConstrMatrix()
+template<int nx_, int nu_, int N_, typename Linearizer>
+void MPCValFun<nx_,nu_,N_, Linearizer>::buildConstrMatrix()
 	{
 		int Fx_counter = 0;
 		int Fc_counter = 0;
@@ -677,8 +778,8 @@ namespace ModelPredictiveControllerValFun
 		}
 	}
 
-
-	void MPCValFun::readAB()
+template<int nx_, int nu_, int N_, typename Linearizer>
+void MPCValFun<nx_,nu_,N_, Linearizer>::readAB()
 	{	
 
 		// Read Matrix A
@@ -710,43 +811,40 @@ namespace ModelPredictiveControllerValFun
 		myfile.close();
 		if (printLevel_ >= 1) std::cout << "DONE Reading Matrix B" <<  std::endl;
 	}
-	
-	void MPCValFun::linearize()
-	{
+
+template<int nx_, int nu_, int N_, typename Linearizer>
+void MPCValFun<nx_,nu_,N_, Linearizer>::linearize()
+  {
 		for (int idxN = 0; idxN < N_; idxN ++){
 			// Get linearized dynamics
-			linearizedDynamics_(xLin_,x_eq_, uLin_,Alinear_,Blinear_,Clinear_,idxN);
+			if constexpr (std::is_same<Linearizer, LinDyn>::value){
+        linearizedDynamics_(xLin_, x_eq_, uLin_, Alinear_, Blinear_, Clinear_, idxN);
+			} else {
+			  return;
+			}
+
+      using AMat = Eigen::Matrix<double, nx_, nx_>;
+      using BMat = Eigen::Matrix<double, nx_, nu_>;
+      using CMat = Eigen::Matrix<double, nx_, 1>;
+
+      auto AlinearMat = Eigen::Map<AMat>(Alinear_);
+      auto BlinearMat = Eigen::Map<BMat>(Blinear_);
+      auto ClinearMat = Eigen::Map<CMat>(Clinear_);
+
+      auto AlinearOutMat = Eigen::Map<AMat>(AlinearOut);
+      auto BlinearOutMat = Eigen::Map<BMat>(BlinearOut);
+      auto ClinearOutMat = Eigen::Map<CMat>(ClinearOut);
 
 			if (idxN == 0){
- 		    	for (int i = 0; i<nx_*nx_; i++){
- 		    		AlinearOut[i] = Alinear_[i];
- 		    	}
- 		    	for (int i = 0; i<nx_*nu_; i++){
- 		    		BlinearOut[i] = Blinear_[i];
- 		    	}
- 		    	for (int i = 0; i<nx_; i++){
- 		    		ClinearOut[i] = Clinear_[i];
- 		    	}
+			    AlinearOutMat = AlinearMat;
+			    BlinearOutMat = BlinearMat;
+			    ClinearOutMat = ClinearMat;
  		    }
-
-			// Linearize x y
-			matrixProd(Alinear2_, Alinear_, Alinear_);
-			matrixProd(Alinear3_, Alinear2_, Alinear_);
-			matrixProd(Alinear4_, Alinear3_, Alinear_);
 
 			// Discretize Matrix A (approximate matrix Explonential)
 			if (printLevel_ >= 4) std::cout << "Alin Approximation with dt_: "<< dt_ << " idxN: " << idxN <<  std::endl;
-			for (int row = 0; row < nx_; row ++){
-				for (int col = 0; col < nx_; col ++){
-					if (row == col){
-						Alin_[idxN*(nx_*nx_) + row*nx_ + col] = 1.0 + Alinear_[row*nx_ + col]*dt_ + 0.5*Alinear2_[row*nx_ + col]*pow(dt_,2) + (1.0/6.0)*Alinear3_[row*nx_ + col]*pow(dt_,3) + (1.0/24.0)*Alinear4_[row*nx_ + col]*pow(dt_,4);
-					}else{
-						Alin_[idxN*(nx_*nx_) + row*nx_ + col] =       Alinear_[row*nx_ + col]*dt_ + 0.5*Alinear2_[row*nx_ + col]*pow(dt_,2) + (1.0/6.0)*Alinear3_[row*nx_ + col]*pow(dt_,3) + (1.0/24.0)*Alinear4_[row*nx_ + col]*pow(dt_,4);
-					}
-					if (printLevel_ >= 4) std::cout << Alin_[idxN*(nx_*nx_) + row*nx_ + col] << " ";
-				}
-				if (printLevel_ >= 4) std::cout <<  std::endl;
-			}
+			auto AlinIdxNmat = Eigen::Map<AMat>(Alin_ + idxN*(nx_*nx_));
+			AlinIdxNmat = (AlinearMat * dt_).exp();
 
 			if ((printLevel_ >= 3) and (idxN == 0)) std::cout << "Alin Approximation with dt_: "<< dt_ << " idxN: " << idxN <<  std::endl;
 			for (int row = 0; row < nx_; row ++){
@@ -758,13 +856,8 @@ namespace ModelPredictiveControllerValFun
 
 			// Discretize Matrix B
 			if (printLevel_ >= 4) std::cout << "Blin Approximation with dt_: "<< dt_ << " idxN: " << idxN <<  std::endl;
-			for (int row = 0; row < nx_; row ++){
-				for (int col = 0; col < nu_; col ++){
-					Blin_[idxN*(nx_*nu_) + row*nu_ + col] = Blinear_[row*nu_ + col] * dt_;
-					if (printLevel_ >= 4) std::cout << Blin_[idxN*(nx_*nu_) + row*nu_ + col] << " ";
-				}
-				if (printLevel_ >= 4) std::cout <<  std::endl;
-			}
+			auto BlinIdxNmat = Eigen::Map<BMat>(Blin_ + idxN*(nx_*nu_));
+			BlinIdxNmat = BlinearMat * dt_;
 
 			if ((printLevel_ >= 3) and (idxN == 0)) std::cout << "Blin Approximation with dt_: "<< dt_ << " idxN: " << idxN <<  std::endl;
 			for (int row = 0; row < nx_; row ++){
@@ -778,32 +871,20 @@ namespace ModelPredictiveControllerValFun
 			if (idxN == 0){
 				// Discretize Dealy Matrix propagation
 				if (printLevel_ >= 4) std::cout << "AlinDelay_ Approximation with dtDelay_: "<< dtDelay_ <<  std::endl;
-				for (int row = 0; row < nx_; row ++){
-					for (int col = 0; col < nx_; col ++){
-						if (row == col){
-							AlinDelay_[row*nx_ + col] = 1.0 + Alinear_[row*nx_ + col]*dtDelay_ + 0.5*Alinear2_[row*nx_ + col]*pow(dtDelay_,2) + (1.0/6.0)*Alinear3_[row*nx_ + col]*pow(dtDelay_,3) + (1.0/24.0)*Alinear4_[row*nx_ + col]*pow(dtDelay_,4);
-						}else{
-							AlinDelay_[row*nx_ + col] =       Alinear_[row*nx_ + col]*dtDelay_ + 0.5*Alinear2_[row*nx_ + col]*pow(dtDelay_,2) + (1.0/6.0)*Alinear3_[row*nx_ + col]*pow(dtDelay_,3) + (1.0/24.0)*Alinear4_[row*nx_ + col]*pow(dtDelay_,4);
-						}
-						if (printLevel_ >= 4) std::cout << AlinDelay_[row*nx_ + col] << " ";
-					}
-					if (printLevel_ >= 4) std::cout <<  std::endl;
-				}
+        auto AlinDelayMat = Eigen::Map<AMat>(AlinDelay_);
+        AlinDelayMat = (AlinearMat * dtDelay_).exp();
 
 				// Discretize Matrix B delay
 				if (printLevel_ >= 4) std::cout << "BlinDelay_ Approximation with dtDelay_: "<< dtDelay_ <<  std::endl;
-				for (int row = 0; row < nx_; row ++){
-					for (int col = 0; col < nu_; col ++){
-						BlinDelay_[row*nu_ + col] = Blinear_[row*nu_ + col] * dtDelay_;
-						if (printLevel_ >= 4) std::cout << BlinDelay_[row*nx_ + col] << " ";
-					}
-					if (printLevel_ >= 4) std::cout <<  std::endl;
-				}
+				auto BlinDelayMat = Eigen::Map<BMat>(BlinDelay_);
+				BlinDelayMat = BlinearMat * dtDelay_;
+
 			}
 		}
 	}
 
-	void MPCValFun::matrixProd(double Aout[], double A1[], double A2[])
+template<int nx_, int nu_, int N_, typename Linearizer>
+void MPCValFun<nx_,nu_,N_, Linearizer>::matrixProd(double Aout[], double A1[], double A2[])
 	{	
 		// compute x_IC = Alin * xCurr + Blin * uCurr
 		if (printLevel_ >= 4) std::cout << "==================================== matrixProd" <<  std::endl;
@@ -838,8 +919,8 @@ namespace ModelPredictiveControllerValFun
 		}
 
 	}
-	
-	int MPCValFun::setUpOSQP(int verbose)
+template<int nx_, int nu_, int N_, typename Linearizer>
+int MPCValFun<nx_,nu_,N_, Linearizer>::setUpOSQP(int verbose)
 	{
 		if (printLevel_ >= 1) std::cout << "START Setting-up Solver" <<  std::endl;
 	 	std::cout << "START Setting-up Solver" <<  std::endl;
@@ -867,15 +948,15 @@ namespace ModelPredictiveControllerValFun
 
 		return osqp_setup(&work_, data_, settings_);
 	}
-
-	void MPCValFun::setIC(double xt[])
+template<int nx_, int nu_, int N_, typename Linearizer>
+void MPCValFun<nx_,nu_,N_, Linearizer>::setIC(double xt[])
 	{
 		for (int i = 0; i < nx_; i++){
 			x_IC_[i] = xt[i];
 		}
 	}
-
-	void MPCValFun::oneStepPrediction(double ut[])
+template<int nx_, int nu_, int N_, typename Linearizer>
+void MPCValFun<nx_,nu_,N_, Linearizer>::oneStepPrediction(double ut[])
 	{	
 		double xDummy[nx_] = {};
 		// compute x_IC = Alin * xCurr + Blin * uCurr + Clinear *dt_
@@ -893,8 +974,8 @@ namespace ModelPredictiveControllerValFun
 			x_IC_[i] = xDummy[i];
 		}		
 	}
-
-	void MPCValFun::oneStepPredictionDelay(double ut[])
+template<int nx_, int nu_, int N_, typename Linearizer>
+void MPCValFun<nx_,nu_,N_, Linearizer>::oneStepPredictionDelay(double ut[])
 	{	
 		double xDummy[nx_] = {};
 		// compute x_IC = Alin * xCurr + Blin * uCurr + Clinear *dtDelay_
@@ -912,8 +993,8 @@ namespace ModelPredictiveControllerValFun
 			x_IC_[i] = xDummy[i];
 		}		
 	}
-
-	void MPCValFun::solveQP()
+template<int nx_, int nu_, int N_, typename Linearizer>
+void MPCValFun<nx_,nu_,N_, Linearizer>::solveQP()
 	{
 		// Update initial condition (x0 is not a variable so need to constraint x1 ---> Ax0 in lb_x_ and ub_x_)
 		if (printLevel_ >= 3) std::cout << "Compute Ax0 to to update lb_x_ and ub_x_"<< nx_ << std::endl;

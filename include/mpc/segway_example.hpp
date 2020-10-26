@@ -4,25 +4,25 @@
 #include <cstring>
 #include <string>
 
-const int nu_ = 2;
-const int nx_ = 7;
+constexpr int nu_ = 2;
+constexpr int nx_ = 7;
 
 // Initialize Parameters
-double mb = 44.798;
-double mw = 2.485;
-double Jw = 0.055936595310797;
-double a2 = -0.02322718759275;
-double c2 = 0.166845864363019;
-double A2 = 3.604960049044268;
-double B2 = 3.836289730154863;
-double C2 = 1.069672194414735;
-double K  = 1.261650363363571;
-double r  = 0.195;
-double L  = 0.5;
-double gGravity = 9.81;
-double FricCoeffViscous = 0.;
-double velEps = 1.0e-3;
-double FricCoeff = 1.225479467549329;
+constexpr double mb = 44.798;
+constexpr double mw = 2.485;
+constexpr double Jw = 0.055936595310797;
+constexpr double a2 = -0.02322718759275;
+constexpr double c2 = 0.166845864363019;
+constexpr double A2 = 3.604960049044268;
+constexpr double B2 = 3.836289730154863;
+constexpr double C2 = 1.069672194414735;
+constexpr double K  = 1.261650363363571;
+constexpr double r  = 0.195;
+constexpr double L  = 0.5;
+constexpr double gGravity = 9.81;
+constexpr double FricCoeffViscous = 0.;
+constexpr double velEps = 1.0e-3;
+constexpr double FricCoeff = 1.225479467549329;
 
 double x_max_[nx_] = {0.04,0.04,0.1,0.3,0.3,0.1,0.3};
 double x_eq_[nx_] = {0,0,0,0,0,.138324423615,0};

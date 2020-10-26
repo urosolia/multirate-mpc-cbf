@@ -93,3 +93,7 @@ configure_file(
   IMMEDIATE @ONLY)
 
 add_custom_target(uninstall COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/uninstall.cmake)
+add_executable(mpc_test src/mpc_test.cpp)
+add_executable(cbf_test src/cbf_test.cpp)
+target_link_libraries(mpc_test  ${PROJECT_NAME})
+target_link_libraries(cbf_test  ${PROJECT_NAME})

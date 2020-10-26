@@ -27,8 +27,9 @@ int flag_state_measurement = 0;
 int flag_goalSetAndState_measurement = 0;
 
 // MPC *mpc; // Define MPC object as a pointer
-MPCValFun *mpcValFun; // Define MPC object as a pointer
-
+constexpr const int N  = 40; 	  // Horizon length
+MPCValFun<nx_, nu_, N> *mpcValFun; // Define MPC object as a pointer
+MPCValFunGP<nx_, nu_, N> *mpcValFunGP; // Define MPC object as a pointer
 //// Main Definition
 int main (int argc, char *argv[])
 {
@@ -47,7 +48,6 @@ int main (int argc, char *argv[])
 	// Initialize QP parameters. 
 	// static const uint32_t constraint = 0; // 0 = no printing, 1 = only x_t, 2 = minimal, 3 = minimal + initialization, 4 = all
 
-	static const int N  = 40; 	  // Horizon length
 
 	static const uint32_t printLevel =  0; // 0 = no printing, 1 = only x_t, 2 = minimal, 3 = minimal + initialization, 4 = all
   std::array<double, 12> goalSetAndStateVector = {0.0};
@@ -74,7 +74,8 @@ int main (int argc, char *argv[])
 
 	cout << "========== START Initializing MPC Object" << endl;
 	string matrix_prefix_path = "/home/drew/multirate-mpc-cbf";
-	mpcValFun = new MPCValFun(nx_, nu_, N, dt_, dtDelay_, printLevel, x_eq_, error_max_, enlarge, lowLevelActive, linearization_IC_, matrix_prefix_path, linearizedDynamics);
+	mpcValFun = new MPCValFun<nx_, nu_, N>(dt_, dtDelay_, printLevel, x_eq_, error_max_, enlarge, lowLevelActive, linearization_IC_, matrix_prefix_path, linearizedDynamics);
+
 	mpcValFun->setGoalState(x_g);
 	mpcValFun->setIC(x_IC);  // Solve QP to check the everything works
 	mpcValFun->readAB();
