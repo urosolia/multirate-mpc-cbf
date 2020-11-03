@@ -198,10 +198,11 @@ using LinDynCov = std::function<void(const double * /*x*/,
 
 template<int nx_, int nu_, int N_, typename LINEARIZER=LinDynCov>
 class MPCValFunGP : public MPCValFun<nx_, nu_, N_, LINEARIZER> {
+ protected:
   double * Klinear_; // This is overwritten after Alin_ is computed
   double * Klin_;
  public:
-  using PARENT = MPCValFun<nx_, nu_, N_, LinDynCov>;
+  using PARENT = MPCValFun<nx_, nu_, N_, LINEARIZER>;
   MPCValFunGP(
     const double dt,
     const double dtDelay,
@@ -239,15 +240,19 @@ class MPCValFunGP : public MPCValFun<nx_, nu_, N_, LINEARIZER> {
     using KMat = Eigen::Matrix<double, nx_ + nu_, nx_ + nu_>;
 
     for (int idxN = 0; idxN < N_; idxN ++){
-      // Get linearized dynamics
-      this->linearizedDynamics_(this->xLin_,
-                          this->x_eq_,
-                          this->uLin_,
-                          this->Alinear_,
-                          this->Blinear_,
-                          this->Clinear_,
-                          this->Klinear_,
-                          idxN);
+      if constexpr (std::is_same<LINEARIZER, LinDynCov>::value){
+        // Get linearized dynamics
+        this->linearizedDynamics_(this->xLin_,
+                                  this->x_eq_,
+                                  this->uLin_,
+                                  this->Alinear_,
+                                  this->Blinear_,
+                                  this->Clinear_,
+                                  this->Klinear_,
+                                  idxN);
+      } else {
+        return;
+      }
 
       auto AlinearMat = Eigen::Map<AMat>(this->Alinear_);
       auto BlinearMat = Eigen::Map<BMat>(this->Blinear_);
@@ -294,7 +299,8 @@ using BatchLinDynCov = std::function<void(const double * /*x*/,
 
 template<int nx_, int nu_, int N_, typename LINEARIZER=BatchLinDynCov>
 class MPCValFunGPBatch : public MPCValFunGP<nx_, nu_, N_, LINEARIZER> {
-  using PARENT = MPCValFun<nx_, nu_, N_, LinDynCov>;
+  using PARENT = MPCValFunGP<nx_, nu_, N_, LINEARIZER>;
+ public:
   MPCValFunGPBatch(
     const double dt,
     const double dtDelay,
@@ -1078,8 +1084,9 @@ void MPCValFun<nx_,nu_,N_, Linearizer>::solveQP()
 
 		data_->l = lb_x_;
 		data_->u = ub_x_;
-		osqp_setup(&work_, data_, settings_);
-		
+		c_int exit_flag = osqp_setup(&work_, data_, settings_);
+
+		assert(exit_flag == 0); // Something is wrong with the initialization if this is the case.
 		// Now solve QP
 		osqp_solve(work_);
 		if (printLevel_ >= 1) std::cout << "QP solved optimally: "<< work_->info->status_val << std::endl;
