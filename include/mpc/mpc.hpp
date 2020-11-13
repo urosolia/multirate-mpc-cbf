@@ -86,7 +86,7 @@ namespace ModelPredictiveControllerValFun
 		const double *x_eq_;
 	    const double *max_error_;
 		const double enlarge_ = {};
-	    const double lowLevelActive_ = {};
+	    const bool lowLevelActive_ = {};
 		const double *linearization_IC_;
 		const string matrix_prefix_path_;
 		std::function<void(const double* /*x*/,
@@ -193,9 +193,12 @@ namespace ModelPredictiveControllerValFun
 		Qerr = new float[nx_]{};
 		oldInput = new double[nu_]{};
 
-		if (lowLevelActive_ > 0.5){
-			for (int i = 0; i < nx_; i++)
+		if (lowLevelActive_ == true){
+			cout << " Low Level Active --> Use Robust MPC with tightening:" << endl;
+			for (int i = 0; i < nx_; i++){
 				tightening[i] = max_error_[i];	
+				cout << "i :" << i << " : " << tightening[i] << endl; 
+			}
 			ifstream myfile;
 			myfile.open((matrix_prefix_path_+"/qp_matrices/tuning/Qerr.txt"), std::ios::app);
 			for (int i = 0; i < nx_; i++){
@@ -578,8 +581,8 @@ namespace ModelPredictiveControllerValFun
 			for (int j = 0; j< nx_; j++){
 
 				if (i == 0){
-					lb_x_[nx_*(N_+1) + i*nx_ + j] =  xConstrLB_[j]-10;
-					ub_x_[nx_*(N_+1) + i*nx_ + j] =  xConstrUB_[j]+10;					
+					lb_x_[nx_*(N_+1) + i*nx_ + j] =  xConstrLB_[j]-10; // No constraint on first predicted state
+					ub_x_[nx_*(N_+1) + i*nx_ + j] =  xConstrUB_[j]+10; // No constraint on fisrt predicted state					
 				}
 				else if (i < Nterm_){
 					lb_x_[nx_*(N_+1) + i*nx_ + j] =  xConstrLB_[j] + tightening[j];
@@ -922,8 +925,8 @@ namespace ModelPredictiveControllerValFun
 		// Update initial condition (x0 is not a variable so need to constraint x1 ---> Ax0 in lb_x_ and ub_x_)
 		if (printLevel_ >= 3) cout << "Compute Ax0 to to update lb_x_ and ub_x_"<< nx_ << std::endl;
 		for (int i = 0; i < nx_; i++) {
-			lb_x_[i] = x_IC_[i];
-			ub_x_[i] = x_IC_[i]; 
+			lb_x_[i] = x_IC_[i]; - tightening[i];
+			ub_x_[i] = x_IC_[i]; + tightening[i]; 
 		}
 
 		if (printLevel_ >= 3){
