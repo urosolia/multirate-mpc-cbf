@@ -6,6 +6,7 @@
 
 const int nu_ = 2;
 const int nx_ = 4;
+double x_eq_[nx_] = {0,0,0,0};
 
 // Initialize Parameters
 
@@ -19,7 +20,7 @@ void linearizedDroneDynamics(const double* x,
 				   double* C,
 				   const int idxN)
 {
-
+	int i = 0;
 }
 
 

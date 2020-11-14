@@ -33,7 +33,7 @@ namespace ModelPredictiveControllerValFun
 			const double x_eq[],
 			const double error_max[],
 			const double enlarge,
-			const double lowLevelActive,
+			const bool lowLevelActive,
 			const double linearization_IC[],
 			const string matrix_prefix_path,
 			std::function<void(const double* /*x*/,
@@ -167,7 +167,7 @@ namespace ModelPredictiveControllerValFun
 						 const double x_eq[], 
 						 const double max_error[], 
 						 const double enlarge, 
-						 const double lowLevelActive, 
+						 const bool lowLevelActive, 
 						 const double linearization_IC[],
 						 const string matrix_prefix_path, 
 						 std::function<void(const double* /*x*/,
@@ -205,15 +205,18 @@ namespace ModelPredictiveControllerValFun
 				myfile >> Qerr[i];
 			}
 			myfile.close();
+		}else{
+			for (int i = 0; i < nx_; i++){
+				tightening[i] = 0;
+				Qerr[i]       = 0;	
+				cout << "i :" << i << " : " << tightening[i] << endl; 
+			}
 		}
 		cout << "Tightening Paramters: " << endl;
 		cout << "error x: "        << tightening[0] << endl;
 		cout << "error y: "        << tightening[1] << endl;
 		cout << "error theta: "    << tightening[2] << endl;
 		cout << "error v: "        << tightening[3] << endl;
-		cout << "error thetaDot: " << tightening[4] << endl;
-		cout << "error psi: "      << tightening[5] << endl;
-		cout << "error psiDot: "   << tightening[6] << endl;
 		for (int i = 0; i < nx_; i++){
 			cout << "error cost: "     << Qerr[i] << " i: " << i << endl;
 		}
@@ -940,6 +943,10 @@ namespace ModelPredictiveControllerValFun
 		// 	lb_x_[nx_*(N_+1) + nx_*(N_+1) + j] = oldInput[j] - 3.0;
 		// 	ub_x_[nx_*(N_+1) + nx_*(N_+1) + j] = oldInput[j] + 3.0;
 		// }	
+		// cout << "Hx" << endl;
+		// for (int i =0; i<H_nnz_; i++){
+		// 	cout << Hx_[i] << endl;
+		// }
 
 		data_->n = nv_;
 		data_->m = nc_;
