@@ -33,6 +33,8 @@ class MPCValFunAbstract
 
     xPred = new double[nx_*(N_+1)];
     uPred = new double[nu_*(N_)];
+    Alin_ = new double[N_*nx_*nx_];
+    Blin_ = new double[N_*nx_*nu_];
   }
 
   ~MPCValFunAbstract() {
@@ -42,6 +44,8 @@ class MPCValFunAbstract
     delete [] ClinearOut;
     delete [] xPred;
     delete [] uPred;
+    delete [] Alin_;
+    delete [] Blin_;
   }
 
   virtual void setIC(double xt[]) = 0;
@@ -68,6 +72,8 @@ class MPCValFunAbstract
   double *BlinearOut;
   double *ClinearOut;
   double *x_IC_;
+  double *Alin_;
+  double *Blin_;
 };
 	///////////////////////////// MPC                                              S
 	using LinDyn = std::function<void(const double* /*x*/,
@@ -132,10 +138,6 @@ class MPCValFunAbstract
 		int nv_;
 		int nc_;
 		double *x_g_;
-
-
-		double *Alin_;
-		double *Blin_;
 
 		double *Alinear_;
 		double *Blinear_;
@@ -332,6 +334,7 @@ class MPCValFunGPBatch : public MPCValFunGP<nx_, nu_, N_, LINEARIZER> {
 
       // Matrix A
       auto AlinIdxNmat = Eigen::Map<AMat>(this->Alin_ + idxN*(nx_*nx_));
+      AlinIdxNmat -= AMat::Identity();
       // Matrix B
       auto BlinIdxNmat = Eigen::Map<BMat>(this->Blin_ + idxN*(nx_*nu_));
       // Matrix C
@@ -436,13 +439,10 @@ class MPCValFunGPBatch : public MPCValFunGP<nx_, nu_, N_, LINEARIZER> {
 		Blinear_  = new double[nx_*nu_]; // This is overwritten after Blin_ is computed
 		Clinear_  = new double[nx_*N_];  // This is NOT overwritten because we simply have that Clin = Clinear * dt_
 
-		
-		Blin_ = new double[N_*nx_*nu_];
 
 		AlinDelay_ = new double[nx_*nx_];
 		BlinDelay_ = new double[nx_*nu_];
 
-		Alin_ = new double[N_*nx_*nx_];
 
 		xLin_ = new double[nx_*(N_+1)];
 		uLin_ = new double[nu_*(N_)];
@@ -799,7 +799,7 @@ void MPCValFun<nx_,nu_,N_, Linearizer>::buildConstrMatrix()
 				if (i < N_){
 					for (int ii = 0; ii < nx_; ii++){
 						row = (i+1)*nx_ + ii;
-						Fx_[Fx_counter] = -Alin_[i*(nx_*nx_) + ii*nx_ + j];
+						Fx_[Fx_counter] = -this->Alin_[i*(nx_*nx_) + ii*nx_ + j];
 						Fr_[Fx_counter] = row;
 						Fx_counter += 1;
 					}					
@@ -822,7 +822,7 @@ void MPCValFun<nx_,nu_,N_, Linearizer>::buildConstrMatrix()
 				col = nx_*(N_ + 1) + i*nu_ + j;
 				for (int ii = 0; ii < nx_; ii++){
 					row = (i+1)*nx_ + ii;
-					Fx_[Fx_counter] = -Blin_[i*(nx_*nu_) + ii*nu_ + j];
+					Fx_[Fx_counter] = -this->Blin_[i*(nx_*nu_) + ii*nu_ + j];
 					Fr_[Fx_counter] = row;
 					Fx_counter += 1;
 				}
@@ -916,11 +916,11 @@ void MPCValFun<nx_,nu_,N_, Linearizer>::linearize()
  		    }
 
 			// Discretize Matrix A (approximate matrix Explonential)
-			auto AlinIdxNmat = Eigen::Map<AMat>(Alin_ + idxN*(nx_*nx_));
+			auto AlinIdxNmat = Eigen::Map<AMat>(this->Alin_ + idxN*(nx_*nx_));
 			AlinIdxNmat = (AlinearMat * dt_).exp();
 
 			// Discretize Matrix B
-			auto BlinIdxNmat = Eigen::Map<BMat>(Blin_ + idxN*(nx_*nu_));
+			auto BlinIdxNmat = Eigen::Map<BMat>(this->Blin_ + idxN*(nx_*nu_));
 			BlinIdxNmat = BlinearMat * dt_;
 
       if (printLevel_ >= 2) std::cout << "AlinearMat IdxN (" << idxN <<"):"  << std::endl << AlinearMat << std::endl;
@@ -1023,10 +1023,10 @@ void MPCValFun<nx_,nu_,N_, Linearizer>::oneStepPrediction(double ut[])
 		for (int i=0; i < nx_; i++) {
 			xDummy[i] = Clinear_[0*nx_ + i] * dt_;
 			for (int j = 0; j < nx_; ++j){
-				xDummy[i] = xDummy[i] + Alin_[0*(nx_*nx_) + i*nx_ + j] * this->x_IC_[j];
+				xDummy[i] = xDummy[i] + this->Alin_[0*(nx_*nx_) + i*nx_ + j] * this->x_IC_[j];
 			}
 			for (int j = 0; j < nu_; ++j){
-				xDummy[i] = xDummy[i] + Blin_[0*(nx_*nu_) + i*nu_ + j] * ut[j];	
+				xDummy[i] = xDummy[i] + this->Blin_[0*(nx_*nu_) + i*nu_ + j] * ut[j];
 			}
 		}
 
