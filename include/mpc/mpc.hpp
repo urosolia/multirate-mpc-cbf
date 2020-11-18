@@ -216,8 +216,8 @@ class MPCValFunGP : public MPCValFun<nx_, nu_, N_, LINEARIZER> {
     LINEARIZER linearizer) :
     PARENT(dt, dtDelay, printFlag, x_eq, max_error, enlarge,
            lowLevelActive, linearization_IC, matrix_prefix_path, linearizer) {
-    Klinear_  = new double[(nx_+ nu_)*(nx_ + nu_)]; // This is overwritten after Alin_ is computed
-    Klin_ = new double[N_*(nx_+ nu_)*(nx_ + nu_)];
+    Klinear_  = new double[nx_*nx_]; // This is overwritten after Alin_ is computed
+    Klin_ = new double[N_*N_*nx_*nx_];
   }
 
   ~MPCValFunGP(){
@@ -277,7 +277,7 @@ class MPCValFunGP : public MPCValFun<nx_, nu_, N_, LINEARIZER> {
       auto BlinIdxNmat = Eigen::Map<BMat>(this->Blin_ + idxN*(nx_*nu_));
       BlinIdxNmat = BlinearMat;
 
-      auto KlinIdxMat = Eigen::Map<KMat>(this->Klin_ + idxN*(nx_ + nu_)*(nx_ + nu_));
+      auto KlinIdxMat = Eigen::Map<KMat>(this->Klin_ + idxN*idxN*nx_*nx_);
       // if idxN == 0 ---> take into account delay
       //TODO: No computationally cheap way to handle this case with GP
       //with GPs we get the exp(adt)
