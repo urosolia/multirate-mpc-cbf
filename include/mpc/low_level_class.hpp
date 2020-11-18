@@ -47,6 +47,12 @@ namespace ControlBarrierFunction
 		double h[1];
 		double V[1];
 
+		double h_alpha[1] = {0.1};
+		double V_alpha[1] = {10.0};
+
+		double uDes[2] = {0.0, 0.0};
+
+
 		double *X;
 		double *Xn;
 
@@ -229,8 +235,18 @@ namespace ControlBarrierFunction
 		data_->l = lb_x_;
 		data_->u = ub_x_;
 		data_->A = csc_matrix(data_->m, data_->n, F_nnz_, Fx_, Fr_, Fc_);
-		osqp_setup(&work_, data_, settings_);
-		
+
+		// osqp_setup(&work_, data_, settings_);
+		osqp_update_lower_bound(work_,lb_x_);
+		osqp_update_upper_bound(work_,ub_x_);
+		for (int i = 0; i < nu_; i++){
+			qv_[i] = -2 * Hx_[i] * uDes[i];
+			std::cout << "=========================================== " << qv_[i] << std::endl;
+		}	
+		osqp_update_lin_cost(work_,qv_);
+
+		osqp_update_A(work_, Fx_, OSQP_NULL, 2*nu_+1);
+
 		if (printLevel >=1 ) std::cout << "Solving QP... "<< std::endl;
 		osqp_solve(work_);
 		if ((work_->info->status_val != OSQP_SOLVED) and (lowLevelActive_ > 0.5)){
@@ -310,10 +326,14 @@ namespace ControlBarrierFunction
 			temp1 = temp1 + Dv[i] * dxdt_augmsys_constaTerm[i];
 			temp2 = temp2 + Dh[i] * dxdt_augmsys_constaTerm[i];
 		}
-		ub_x_[0] = -10.0*V[0] - temp1; 
+		if (V_alpha[0]<10000){
+			ub_x_[0] = - V_alpha[0] *V[0] - temp1; 			
+		}else{
+			ub_x_[0] = - V_alpha[0] *V[0] - temp1 + 1000; 			
+		}
 		ub_x_[1] = OSQP_INFTY;
 		lb_x_[0] = -OSQP_INFTY;
-		lb_x_[1] = -0.1*h[0] - temp2; 
+		lb_x_[1] = - h_alpha[0] *h[0] - temp2; 
 
 		// write constraint matrix
         // self.A = csc_matrix(np.array([[np.dot(dvdx, dxdt_augmsys_linearTerm1), np.dot(dvdx, dxdt_augmsys_linearTerm2), -1],

@@ -217,6 +217,7 @@ void safetySet(const double X[], const double Xn[], double *h, double *Dh)
               - pow((v - vn),2)/pow(x_max_[3],2) - pow((thetaDot - thetaDotn),2)/pow(x_max_[4],2)
         	  - pow((psi - psin),2)/pow(x_max_[5],2)- pow((psiDot - psiDotn),2)/pow(x_max_[6],2);
 
+
 	Dh[0] = -(2*x - 2*xn)/pow(x_max_[0],2);
     Dh[1] = -(2*y - 2*yn)/pow(x_max_[1],2);
 	Dh[2] = -(2*theta - 2*thetan)/pow(x_max_[2],2);

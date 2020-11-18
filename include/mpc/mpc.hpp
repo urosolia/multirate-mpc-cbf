@@ -939,25 +939,21 @@ namespace ModelPredictiveControllerValFun
 			}			
 		}
 
-		// for (int j = 0; j< nu_; j++){
-		// 	lb_x_[nx_*(N_+1) + nx_*(N_+1) + j] = oldInput[j] - 3.0;
-		// 	ub_x_[nx_*(N_+1) + nx_*(N_+1) + j] = oldInput[j] + 3.0;
-		// }	
-		// cout << "Hx" << endl;
-		// for (int i =0; i<H_nnz_; i++){
-		// 	cout << Hx_[i] << endl;
-		// }
+		// data_->n = nv_;
+		// data_->m = nc_;
+		// data_->P = csc_matrix(data_->n, data_->n, H_nnz_, Hx_, Hr_, Hc_);
+		// data_->q = qv_;
+		// data_->A = csc_matrix(data_->m, data_->n, F_znn_, Fx_, Fr_, Fc_);
 
-		data_->n = nv_;
-		data_->m = nc_;
-		data_->P = csc_matrix(data_->n, data_->n, H_nnz_, Hx_, Hr_, Hc_);
-		data_->q = qv_;
-		// data_->A = csc_matrix(data_->m, data_->n, FOld_znn_, FxOld_, FrOld_, FcOld_);
-		data_->A = csc_matrix(data_->m, data_->n, F_znn_, Fx_, Fr_, Fc_);
+		// data_->l = lb_x_;
+		// data_->u = ub_x_;
+		// osqp_setup(&work_, data_, settings_);
 
-		data_->l = lb_x_;
-		data_->u = ub_x_;
-		osqp_setup(&work_, data_, settings_);
+		osqp_update_lower_bound(work_,lb_x_);
+		osqp_update_upper_bound(work_,ub_x_);	
+		osqp_update_lin_cost(work_,qv_);	
+		osqp_update_A(work_, Fx_, OSQP_NULL, F_znn_);
+		osqp_update_P(work_, Hx_, OSQP_NULL, H_nnz_);
 		
 		// Now solve QP
 		osqp_solve(work_);
