@@ -47,6 +47,8 @@ namespace ControlBarrierFunction
 		double h[1];
 		double V[1];
 
+		bool clfActive;
+
 		double h_alpha[1] = {0.1};
 		double V_alpha[1] = {10.0};
 
@@ -241,7 +243,6 @@ namespace ControlBarrierFunction
 		osqp_update_upper_bound(work_,ub_x_);
 		for (int i = 0; i < nu_; i++){
 			qv_[i] = -2 * Hx_[i] * uDes[i];
-			std::cout << "=========================================== " << qv_[i] << std::endl;
 		}	
 		osqp_update_lin_cost(work_,qv_);
 
@@ -326,10 +327,10 @@ namespace ControlBarrierFunction
 			temp1 = temp1 + Dv[i] * dxdt_augmsys_constaTerm[i];
 			temp2 = temp2 + Dh[i] * dxdt_augmsys_constaTerm[i];
 		}
-		if (V_alpha[0]<10000){
+		if (V_alpha[0]<10000.0){
 			ub_x_[0] = - V_alpha[0] *V[0] - temp1; 			
 		}else{
-			ub_x_[0] = - V_alpha[0] *V[0] - temp1 + 1000; 			
+			ub_x_[0] = OSQP_INFTY; 			
 		}
 		ub_x_[1] = OSQP_INFTY;
 		lb_x_[0] = -OSQP_INFTY;
