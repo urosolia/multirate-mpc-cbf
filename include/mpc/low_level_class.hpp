@@ -21,12 +21,13 @@ namespace ControlBarrierFunction
 	{
 
 	public:
-		CBF(const int nx, const int nu, const bool lowLevelActive, c_float Hx[], const double x_eq_[],
+		CBF(const int nx, const int nu, const bool lowLevelActive, c_float Hx[], const double x_eq_[], const double x_max_[],
 			std::function<void(const double* /*x*/,
 					       double* /*A*/,
 					       double* /*B*/)> fullDynamics,
 			std::function<void(const double* /*x*/,
 							   const double* /*x_eq*/,
+						       const double* /*x_max*/,
 						       double* /*A*/,
 						       double* /*B*/)> safetySet,
 			std::function<void(const double* /*x*/,
@@ -70,10 +71,12 @@ namespace ControlBarrierFunction
 		double *Clinear_;
 		c_float *Hx_;//[nv_]  = {0.0};
 		const double *x_eq_;
+		const double *x_max_;
 		std::function<void(const double* /*x*/,
 	                             double* /*f*/,
 								 double* /*g*/)> fullDynamics_;
 		std::function<void(const double* /*x*/,
+								 const double* /*x*/,
 								 const double* /*x*/,
 	                             double* /*f*/,
 								 double* /*g*/)> safetySet_;
@@ -107,19 +110,20 @@ namespace ControlBarrierFunction
 	}; //end CBF class
 
 	// Define constructor
-	CBF::CBF(const int nx, const int nu, const bool lowLevelActive, c_float Hx[], const double x_eq[],
+	CBF::CBF(const int nx, const int nu, const bool lowLevelActive, c_float Hx[], const double x_eq[], const double x_max[],
 		std::function<void(const double* /*x*/,
 					       double* /*A*/,
 					       double* /*B*/)> fullDynamics,
 		std::function<void(const double* /*x*/,
 						   const double* /*x_eq*/,
+						   const double* /*x_max*/,
 					       double* /*A*/,
 					       double* /*B*/)> safetySet,
 		std::function<void(const double* /*x*/,
 						   const double* /*x_eq*/,
 					       double* /*A*/,
 					       double* /*B*/)> clf):
-	nx_(nx), nu_(nu), lowLevelActive_(lowLevelActive), Hx_(Hx), x_eq_(x_eq), fullDynamics_(fullDynamics), safetySet_(safetySet), clf_(clf)
+	nx_(nx), nu_(nu), lowLevelActive_(lowLevelActive), Hx_(Hx), x_eq_(x_eq), x_max_(x_max), fullDynamics_(fullDynamics), safetySet_(safetySet), clf_(clf)
 	{
 		Fx_ = new c_float[2*nu_+1]{};
 		Fr_ = new c_int[2*nu_+1]{};
@@ -167,6 +171,11 @@ namespace ControlBarrierFunction
 		Alinear_  = new double[nx_*nx_]{}; 
 		Blinear_  = new double[nx_*nu_]{}; 
 		Clinear_  = new double[nx_]{};
+
+		std::cout << "Low level x_max_" << std::endl;
+		for (int i=0; i < nx; i++){
+			std::cout << "i: "<< i << ", x_max_[i]: " << x_max_[i] << std::endl;
+		}
  	}
 
  	// Deallocation Memory
@@ -314,7 +323,7 @@ namespace ControlBarrierFunction
         // Barrier
         double Dh[2*nx_];
         double Dv[2*nx_];
-        safetySet_(X, Xn, h, Dh);
+        safetySet_(X, Xn, x_max_, h, Dh);
         clf_(X, Xn, V, Dv);
 
         // constraints

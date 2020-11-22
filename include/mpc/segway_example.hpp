@@ -24,7 +24,9 @@ double FricCoeffViscous = 0.;
 double velEps = 1.0e-3;
 double FricCoeff = 1.225479467549329;
 
-double x_max_[nx_] = {0.04,0.04,0.1,0.3,0.3,0.1,0.3};
+// double x_max_[nx_] = {0.04,0.04,0.1,0.3,0.3,0.1,0.3};
+// double x_max_[nx_] = {0.02,0.02,0.1,0.1,0.1,0.1,0.1};
+
 double x_eq_[nx_] = {0,0,0,0,0,.138324423615,0};
 double x_cost_[nx_] = {100,100,100,100,10000,10000,100};
 
@@ -196,7 +198,7 @@ void fullDynamics(const double *X, double *f, double *g)
 	memcpy(g+nx_, g2, sizeof(double)*nx_);
 }
 
-void safetySet(const double X[], const double Xn[], double *h, double *Dh) 
+void safetySet(const double X[], const double Xn[], const double *x_max_, double *h, double *Dh) 
 {
 	double x        = X[0]; 
     double y        = X[1]; 
