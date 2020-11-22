@@ -4,7 +4,7 @@ This repo containes the multirate-mpc-cbf package, which is a layered multi-freq
 
 ## Prerequisite 
 
-The [OSQP](https://github.com/oxfordcontrol/osqp) library is required.
+The [OSQP](https://github.com/DrewSingletary/segway_sim) library is required.
 
 ## Installation
 
