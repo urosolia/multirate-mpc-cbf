@@ -4,7 +4,7 @@ This repo containes the multirate-mpc-cbf package, which is a layered multi-freq
 
 ## Prerequisite 
 
-The [OSQP](https://github.com/DrewSingletary/segway_sim) library is required.
+The [OSQP](https://github.com/oxfordcontrol/osqp) library is required.
 
 ## Installation
 
@@ -34,7 +34,7 @@ g++ src/cbf_test.cpp -o cbf_test.o -I /usr/local/include/osqp/ -L /usr/local/lib
 
 ## Integration in ROS
 
-Checkout our [Segway](https://github.com/oxfordcontrol/osqp) ROS simulator to see how to used this library.
+Checkout our [Segway](https://github.com/DrewSingletary/segway_sim) ROS simulator to see how to used this library.
 
 ## References
 
