@@ -34,7 +34,7 @@ g++ src/cbf_test.cpp -o cbf_test.o -I /usr/local/include/osqp/ -L /usr/local/lib
 
 ## Integration in ROS
 
-Checkout our [Segway](https://github.com/DrewSingletary/segway_sim) ROS simulator to see how to used this library.
+Checkout our [Segway](https://github.com/DrewSingletary/segway_sim) ROS simulator to see how to use this library.
 
 ## References
 
