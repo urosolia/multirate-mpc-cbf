@@ -64,6 +64,7 @@ class MPCValFunAbstract
   virtual void resetHorizon(void) = 0;
   virtual void setGoalState(double xt[]) = 0;
   virtual void updateGoalSetAndState(const std::array<double, 12> &goalSetAndState) = 0;
+  virtual Eigen::Matrix<double, nu_, 1> getUConstr() = 0;
 
   double *xPred;
   double *uPred;
@@ -120,6 +121,7 @@ class MPCValFunAbstract
 		virtual void resetHorizon(void) override;
 		virtual void setGoalState(double xt[]) override;
 		virtual void updateGoalSetAndState(const std::array<double, 12> &goalSetAndState) override;
+    virtual Eigen::Matrix<double, nu_, 1> getUConstr() override;
 
 	protected:
 		double *xLin_;
@@ -334,7 +336,6 @@ class MPCValFunGPBatch : public MPCValFunGP<nx_, nu_, N_, LINEARIZER> {
 
       // Matrix A
       auto AlinIdxNmat = Eigen::Map<AMat>(this->Alin_ + idxN*(nx_*nx_));
-      AlinIdxNmat -= AMat::Identity();
       // Matrix B
       auto BlinIdxNmat = Eigen::Map<BMat>(this->Blin_ + idxN*(nx_*nu_));
       // Matrix C
@@ -535,6 +536,14 @@ void MPCValFun<nx_,nu_,N_, Linearizer>::updateGoalSetAndState(const std::array<d
 		//std::cout << "xConstrLB_[1]: " << xConstrLB_[1] << " xConstrUB_[1]: " << xConstrUB_[1] <<  std::endl;
 
 	}
+
+template<int nx_, int nu_, int N_, typename Linearizer>
+Eigen::Matrix<double, nu_, 1> MPCValFun<nx_,nu_,N_, Linearizer>::getUConstr() {
+  Eigen::Map<Eigen::Matrix<double, nu_, 1>> uconstr_map(this->uConstr_);
+  Eigen::Matrix<double, nu_, 1> u_constr_returns = uconstr_map;
+  return u_constr_returns;
+}
+
 template<int nx_, int nu_, int N_, typename Linearizer>
 void MPCValFun<nx_,nu_,N_, Linearizer>::setGoalState(double x_goal[])
 	{
