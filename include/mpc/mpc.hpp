@@ -750,8 +750,8 @@ void MPCValFun<nx_,nu_,N_, Linearizer>::buildConstrVector()
 		}
 		// Affine dynamics bound
 		for (int i = 0; i< nx_*N_; i++){
-			lb_x_[nx_ + i] = Clinear_[i]*dt_;
-			ub_x_[nx_ + i] = Clinear_[i]*dt_;
+			lb_x_[nx_ + i] = Clinear_[i];
+			ub_x_[nx_ + i] = Clinear_[i];
 		}
 
 		// State box constraints
@@ -932,6 +932,9 @@ void MPCValFun<nx_,nu_,N_, Linearizer>::linearize()
 			auto BlinIdxNmat = Eigen::Map<BMat>(this->Blin_ + idxN*(nx_*nu_));
 			BlinIdxNmat = BlinearMat * dt_;
 
+			auto ClinIdxNmat = Eigen::Map<CMat>(this->Clinear_ + idxN*(nx_));
+			ClinIdxNmat = ClinIdxNmat * dt_;
+
       if (printLevel_ >= 2) std::cout << "AlinearMat IdxN (" << idxN <<"):"  << std::endl << AlinearMat << std::endl;
       if (printLevel_ >= 2) std::cout << "BlinearMat IdxN (" << idxN <<"):" << std::endl << BlinearMat << std::endl;
       if (printLevel_ >= 2) std::cout << "ClinearMat IdxN (" << idxN <<"):" << std::endl << ClinearMat << std::endl;
@@ -1030,7 +1033,7 @@ void MPCValFun<nx_,nu_,N_, Linearizer>::oneStepPrediction(double ut[])
 		double xDummy[nx_] = {};
 		// compute x_IC = Alin * xCurr + Blin * uCurr + Clinear *dt_
 		for (int i=0; i < nx_; i++) {
-			xDummy[i] = Clinear_[0*nx_ + i] * dt_;
+			xDummy[i] = Clinear_[0*nx_ + i];
 			for (int j = 0; j < nx_; ++j){
 				xDummy[i] = xDummy[i] + this->Alin_[0*(nx_*nx_) + i*nx_ + j] * this->x_IC_[j];
 			}
